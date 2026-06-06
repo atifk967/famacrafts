@@ -365,16 +365,16 @@
       box-shadow: 0 4px 18px rgba(45,36,51,0.06);
       padding: 16px;
       display: grid;
-      grid-template-columns: 40% 1fr;
+      grid-template-columns: 48% 1fr;
       gap: 16px;
       align-items: center;
       transition: box-shadow 0.2s, transform 0.2s;
     }
     @media (min-width: 720px) {
-      .product { padding: 32px; gap: 36px; grid-template-columns: 30% 1fr; }
+      .product { padding: 32px; gap: 36px; grid-template-columns: 40% 1fr; }
     }
     @media (min-width: 1024px) {
-      .product { padding: 36px; gap: 48px; grid-template-columns: 26% 1fr; }
+      .product { padding: 36px; gap: 48px; grid-template-columns: 36% 1fr; }
     }
     @media (hover: hover) {
       .product:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(45,36,51,0.11); }
@@ -422,6 +422,7 @@
       object-fit: contain;
       scroll-snap-align: center;
       background: var(--pink);
+      cursor: zoom-in;
     }
     .carousel-slide.slide-failed { visibility: hidden; }
     .carousel-nav {
@@ -467,6 +468,45 @@
       transition: background 0.15s ease, transform 0.15s ease;
     }
     .carousel-dot.active { background: var(--pink-deep); transform: scale(1.25); }
+
+    /* ── Lightbox (full-scale product photo viewer) ─────────── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(20,15,24,0.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox-img {
+      max-width: 92vw;
+      max-height: 88vh;
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 12px 50px rgba(0,0,0,0.5);
+    }
+    .lightbox-close, .lightbox-nav {
+      position: absolute;
+      border: none;
+      cursor: pointer;
+      color: #fff;
+      background: rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: background 0.15s ease;
+    }
+    @media (hover: hover) {
+      .lightbox-close:hover, .lightbox-nav:hover { background: rgba(255,255,255,0.3); }
+    }
+    .lightbox-close { top: 18px; right: 18px; width: 42px; height: 42px; border-radius: 50%; font-size: 19px; }
+    .lightbox-nav { top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; font-size: 26px; }
+    .lightbox-nav.prev { left: 16px; }
+    .lightbox-nav.next { right: 16px; }
+    .lightbox-nav[hidden] { display: none; }
 
     /* highlight a product when arrived at via a shared WhatsApp link */
     .product-highlight {
@@ -955,6 +995,14 @@
     </div>
   </footer>
 
+  <!-- ── Lightbox (click a product photo to view full-scale) ── -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Product photo">
+    <button type="button" class="lightbox-nav prev" aria-label="Previous photo">‹</button>
+    <img class="lightbox-img" id="lightbox-img" alt="" />
+    <button type="button" class="lightbox-nav next" aria-label="Next photo">›</button>
+    <button type="button" class="lightbox-close" aria-label="Close">✕</button>
+  </div>
+
   <!-- ── WhatsApp FAB ───────────────────────────────────────── -->
   <a class="fab" id="fabBtn" href="#" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="white" aria-hidden="true">
@@ -1016,6 +1064,49 @@
         setTimeout(function () { el.classList.remove('product-highlight'); }, 2400);
       }
 
+      // ── Lightbox: click a product photo to view it full-scale ──
+      var lbImages = [], lbIndex = 0;
+      function lbShow() {
+        var lb = document.getElementById('lightbox');
+        document.getElementById('lightbox-img').src = lbImages[lbIndex] || '';
+        var multi = lbImages.length > 1;
+        lb.querySelector('.lightbox-nav.prev').hidden = !multi;
+        lb.querySelector('.lightbox-nav.next').hidden = !multi;
+      }
+      function openLightbox(images, index) {
+        lbImages = images || [];
+        lbIndex = index || 0;
+        if (!lbImages.length) { return; }
+        lbShow();
+        document.getElementById('lightbox').classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('open');
+        document.getElementById('lightbox-img').src = '';
+        document.body.style.overflow = '';
+      }
+      function lbStep(d) {
+        if (lbImages.length < 2) { return; }
+        lbIndex = (lbIndex + d + lbImages.length) % lbImages.length;
+        lbShow();
+      }
+      (function setupLightbox() {
+        var lb = document.getElementById('lightbox');
+        if (!lb) { return; }
+        lb.addEventListener('click', function (e) {
+          if (e.target === lb || e.target.closest('.lightbox-close')) { closeLightbox(); return; }
+          var nav = e.target.closest('.lightbox-nav');
+          if (nav) { lbStep(nav.classList.contains('next') ? 1 : -1); }
+        });
+        document.addEventListener('keydown', function (e) {
+          if (!lb.classList.contains('open')) { return; }
+          if (e.key === 'Escape') { closeLightbox(); }
+          else if (e.key === 'ArrowRight') { lbStep(1); }
+          else if (e.key === 'ArrowLeft') { lbStep(-1); }
+        });
+      })();
+
       function esc(str) {
         return String(str || '')
           .replace(/&/g, '&amp;')
@@ -1064,6 +1155,7 @@
             imgs.forEach(function (u, idx) {
               html += '<img class="carousel-slide"'
                 + ' src="' + esc(imgSrc(u, 800)) + '"'
+                + ' data-full="' + esc(imgSrc(u, 1600)) + '"'
                 + ' alt="' + esc(p.name) + (imgs.length > 1 ? ' — photo ' + (idx + 1) + ' of ' + imgs.length : '') + '"'
                 + ((isFirst && idx === 0) ? ' loading="eager"' : ' loading="lazy"')
                 + ' onerror="this.classList.add(\'slide-failed\')"'
@@ -1177,6 +1269,15 @@
           if (dot) {
             var t = dot.closest('.carousel').querySelector('.carousel-track');
             t.scrollTo({ left: t.clientWidth * (parseInt(dot.getAttribute('data-idx'), 10) || 0), behavior: 'smooth' });
+            return;
+          }
+          // Click a photo → open it full-scale in the lightbox
+          var slide = e.target.closest('.carousel-slide');
+          if (slide) {
+            var allSlides = slide.closest('.carousel-track').querySelectorAll('.carousel-slide');
+            var urls = Array.prototype.map.call(allSlides, function (s) { return s.getAttribute('data-full') || s.src; });
+            var idx = Array.prototype.indexOf.call(allSlides, slide);
+            openLightbox(urls, idx < 0 ? 0 : idx);
             return;
           }
           // Read more

@@ -781,6 +781,21 @@
     // ════════════════════════════════════════════════════════
     var products = [];
 
+    // Category suggestions = built-in defaults + every category already used.
+    // So any new category you type and save reappears as a suggestion next time.
+    var DEFAULT_CATEGORIES = ['Cards', 'Baskets', 'Bouquets', 'Workshop Kits', 'Custom', 'Keepsakes'];
+    function renderCategoryOptions() {
+      var seen = {};
+      DEFAULT_CATEGORIES.forEach(function (c) { seen[c] = true; });
+      products.forEach(function (p) {
+        var c = (p.category || '').trim();
+        if (c) { seen[c] = true; }
+      });
+      var opts = Object.keys(seen).sort(function (a, b) { return a.localeCompare(b); });
+      document.getElementById('cat-list').innerHTML =
+        opts.map(function (c) { return '<option value="' + esc(c) + '">'; }).join('');
+    }
+
     async function loadProducts() {
       if (!sb) return;
       document.getElementById('products-container').innerHTML = '<div class="state-loading">Loading…</div>';
@@ -794,6 +809,7 @@
         return;
       }
       products = data || [];
+      renderCategoryOptions();
       renderProducts();
     }
 
