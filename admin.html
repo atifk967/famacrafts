@@ -367,6 +367,39 @@
       margin-bottom: 10px;
     }
     .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+    /* multi-image thumbnail grid */
+    .img-preview.has-thumbs {
+      aspect-ratio: auto;
+      max-height: none;
+      min-height: 96px;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px;
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+    .img-thumb {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+      flex: 0 0 auto;
+      box-shadow: 0 1px 4px rgba(45,36,51,0.15);
+    }
+    .img-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .img-thumb .thumb-x {
+      position: absolute; top: 2px; right: 2px;
+      width: 18px; height: 18px; border: none; border-radius: 50%;
+      background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .img-thumb .thumb-primary {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(229,164,188,0.95); color: #2D2433;
+      font-size: 8px; letter-spacing: 1px; text-align: center; padding: 2px 0;
+    }
 
     .upload-label {
       display: block;
@@ -511,11 +544,12 @@
         <div class="field">
           <label>Photo</label>
           <div class="img-preview" id="pm-img-preview">No photo yet</div>
-          <label for="pm-file" class="upload-label">↑ Upload from device</label>
-          <input type="file" id="pm-file" accept="image/*" style="display:none" />
+          <label for="pm-file" class="upload-label">↑ Upload photo(s) from device</label>
+          <input type="file" id="pm-file" accept="image/*" multiple style="display:none" />
           <div class="upload-status" id="pm-upload-status"></div>
-          <div class="upload-or">— or paste an image URL —</div>
+          <div class="upload-or">— or paste an image URL and press Enter —</div>
           <input type="url" id="pm-img-url" placeholder="https://res.cloudinary.com/…" />
+          <div class="upload-or" style="margin-top:4px;font-size:9px">First image is the cover. Drag isn't needed — remove with ✕ and re-add to reorder.</div>
         </div>
 
         <div class="field">
@@ -798,10 +832,39 @@
     }
 
     // Open add/edit modal
+    // ── Multi-image state for the product modal ───────────────
+    var pmImages = [];
+    function renderThumbs() {
+      var prev = document.getElementById('pm-img-preview');
+      if (!pmImages.length) {
+        prev.className = 'img-preview';
+        prev.textContent = 'No photo yet';
+        return;
+      }
+      prev.className = 'img-preview has-thumbs';
+      var h = '';
+      pmImages.forEach(function (url, i) {
+        h += '<div class="img-thumb">'
+           + '<img src="' + esc(url) + '" alt="" />'
+           + '<button type="button" class="thumb-x" data-idx="' + i + '" aria-label="Remove image">✕</button>'
+           + (i === 0 ? '<span class="thumb-primary">COVER</span>' : '')
+           + '</div>';
+      });
+      prev.innerHTML = h;
+    }
+    // remove a thumbnail (delegated)
+    document.getElementById('pm-img-preview').addEventListener('click', function (e) {
+      var x = e.target.closest('.thumb-x');
+      if (!x) return;
+      pmImages.splice(parseInt(x.getAttribute('data-idx'), 10), 1);
+      renderThumbs();
+    });
+
     function openProductModal(id) {
       var form = document.getElementById('product-form');
       form.reset();
-      document.getElementById('pm-img-preview').textContent = 'No photo yet';
+      pmImages = [];
+      renderThumbs();
       document.getElementById('pm-upload-status').textContent = '';
 
       if (id) {
@@ -813,14 +876,15 @@
         document.getElementById('pm-category').value    = p.category    || '';
         document.getElementById('pm-tagline').value     = p.tagline     || '';
         document.getElementById('pm-desc').value        = p.description || '';
-        document.getElementById('pm-img-url').value     = p.image_url   || '';
         document.getElementById('pm-available').checked = p.available !== false;
         document.getElementById('pm-featured').checked  = !!p.featured;
         document.getElementById('pm-order').value       = p.display_order || 0;
-        if (p.image_url) {
-          document.getElementById('pm-img-preview').innerHTML =
-            '<img src="' + esc(p.image_url) + '" alt="" />';
+        if (Array.isArray(p.images) && p.images.length) {
+          pmImages = p.images.filter(function (u) { return u && String(u).trim(); });
+        } else if (p.image_url) {
+          pmImages = [p.image_url];
         }
+        renderThumbs();
       } else {
         document.getElementById('pm-title').textContent = 'Add Product';
         document.getElementById('pm-id').value = '';
@@ -839,38 +903,46 @@
       if (e.target === e.currentTarget) closeProductModal();
     });
 
-    // Image URL input → live preview
-    document.getElementById('pm-img-url').addEventListener('input', function () {
-      var val = this.value.trim();
-      var prev = document.getElementById('pm-img-preview');
-      if (val) {
-        prev.innerHTML = '<img src="' + esc(val) + '" alt="" onerror="this.parentNode.textContent=\'Cannot load image\'" />';
-      } else {
-        prev.textContent = 'No photo yet';
-      }
+    // Paste an image URL + Enter (or blur) → add it to the image list
+    function pmAddUrl() {
+      var inp = document.getElementById('pm-img-url');
+      var val = inp.value.trim();
+      if (!val) return;
+      pmImages.push(val);
+      inp.value = '';
+      renderThumbs();
+    }
+    document.getElementById('pm-img-url').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); pmAddUrl(); }
     });
+    document.getElementById('pm-img-url').addEventListener('change', pmAddUrl);
 
-    // File upload → Supabase Storage
+    // File upload → Supabase Storage (supports selecting multiple files at once)
     document.getElementById('pm-file').addEventListener('change', async function () {
-      var file = this.files[0];
-      if (!file || !sb) return;
+      var files = Array.prototype.slice.call(this.files);
+      if (!files.length || !sb) return;
       var status = document.getElementById('pm-upload-status');
-      status.textContent = 'Uploading…';
-      var ext  = file.name.split('.').pop().toLowerCase();
-      var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
-      var { data, error } = await sb.storage.from('product-images').upload(path, file, {
-        contentType: file.type, upsert: false
-      });
-      if (error) {
-        status.textContent = 'Upload failed: ' + error.message;
-        toast('Upload failed', 'err');
-        return;
+      var done = 0;
+      for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        status.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + '…';
+        var ext  = file.name.split('.').pop().toLowerCase();
+        var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+        var up = await sb.storage.from('product-images').upload(path, file, {
+          contentType: file.type, upsert: false
+        });
+        if (up.error) {
+          status.textContent = 'Upload failed: ' + up.error.message;
+          toast('Upload failed: ' + file.name, 'err');
+          continue;
+        }
+        pmImages.push(sb.storage.from('product-images').getPublicUrl(up.data.path).data.publicUrl);
+        done++;
+        renderThumbs();
       }
-      var { data: { publicUrl } } = sb.storage.from('product-images').getPublicUrl(data.path);
-      document.getElementById('pm-img-url').value = publicUrl;
-      document.getElementById('pm-img-preview').innerHTML = '<img src="' + esc(publicUrl) + '" alt="" />';
-      status.textContent = 'Uploaded ✓';
-      toast('Photo uploaded', 'ok');
+      status.textContent = done ? (done + ' photo' + (done > 1 ? 's' : '') + ' uploaded ✓') : '';
+      if (done) toast(done + ' photo' + (done > 1 ? 's' : '') + ' uploaded', 'ok');
+      this.value = ''; // allow re-selecting the same file(s) again
     });
 
     // Save product
@@ -885,13 +957,17 @@
       var name = document.getElementById('pm-name').value.trim();
       if (!name) { toast('Product name is required', 'err'); btn.textContent = 'Save Product'; btn.disabled = false; return; }
 
+      // flush a URL that was typed but not yet added with Enter
+      pmAddUrl();
+
       var payload = {
         name,
         slug:          toSlug(name),
         category:      document.getElementById('pm-category').value.trim(),
         tagline:       document.getElementById('pm-tagline').value.trim(),
         description:   document.getElementById('pm-desc').value.trim(),
-        image_url:     document.getElementById('pm-img-url').value.trim(),
+        images:        pmImages,
+        image_url:     pmImages[0] || '',
         available:     document.getElementById('pm-available').checked,
         featured:      document.getElementById('pm-featured').checked,
         display_order: parseInt(document.getElementById('pm-order').value) || 0,

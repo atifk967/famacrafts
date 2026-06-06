@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS products (
   tagline       TEXT        DEFAULT '',
   description   TEXT        DEFAULT '',
   category      TEXT        DEFAULT '',
-  image_url     TEXT        DEFAULT '',
+  image_url     TEXT        DEFAULT '',          -- primary/cover image (= images[0])
+  images        TEXT[]      NOT NULL DEFAULT '{}', -- all images for the product carousel
   tags          TEXT[]      DEFAULT '{}',
   available     BOOLEAN     DEFAULT true,
   featured      BOOLEAN     DEFAULT false,
@@ -44,7 +45,7 @@ BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = '';
 
 DROP TRIGGER IF EXISTS products_updated_at ON products;
 CREATE TRIGGER products_updated_at
@@ -63,30 +64,35 @@ CREATE POLICY "public_read_products"
 CREATE POLICY "public_read_workshops"
   ON workshops FOR SELECT USING (true);
 
--- Only logged-in admins can write
+-- Only the admin can write. NOTE: writes are restricted to a specific admin
+-- email (not just any logged-in user) so that even if public sign-up is ever
+-- enabled, random accounts cannot edit the catalog. Also disable public
+-- sign-up in Authentication → Providers. Change the email below to your admin.
 CREATE POLICY "admin_insert_products"
   ON products FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
 CREATE POLICY "admin_update_products"
   ON products FOR UPDATE
-  USING (auth.role() = 'authenticated');
+  USING ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com')
+  WITH CHECK ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
 CREATE POLICY "admin_delete_products"
   ON products FOR DELETE
-  USING (auth.role() = 'authenticated');
+  USING ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
 CREATE POLICY "admin_insert_workshops"
   ON workshops FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
 CREATE POLICY "admin_update_workshops"
   ON workshops FOR UPDATE
-  USING (auth.role() = 'authenticated');
+  USING ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com')
+  WITH CHECK ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
 CREATE POLICY "admin_delete_workshops"
   ON workshops FOR DELETE
-  USING (auth.role() = 'authenticated');
+  USING ((SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
 
 -- ── Storage bucket for product images ───────────────────────
@@ -101,20 +107,21 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Anyone can view images in the bucket
-CREATE POLICY "public_read_images"
+-- NOTE: public image display uses the bucket's public object URL, which does
+-- NOT consult these RLS policies — so we intentionally do NOT grant a public
+-- SELECT policy (that would let anyone *list/enumerate* every file). Only the
+-- admin can list/upload/delete; visitors still load images via the public URL.
+CREATE POLICY "admin_read_images"
   ON storage.objects FOR SELECT
-  USING (bucket_id = 'product-images');
+  USING (bucket_id = 'product-images' AND (SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
--- Only logged-in admins can upload
 CREATE POLICY "admin_upload_images"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'product-images' AND auth.role() = 'authenticated');
+  WITH CHECK (bucket_id = 'product-images' AND (SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
--- Only logged-in admins can delete
 CREATE POLICY "admin_delete_images"
   ON storage.objects FOR DELETE
-  USING (bucket_id = 'product-images' AND auth.role() = 'authenticated');
+  USING (bucket_id = 'product-images' AND (SELECT auth.jwt() ->> 'email') = 'famacrafts@gmail.com');
 
 
 -- ── Done! ────────────────────────────────────────────────────

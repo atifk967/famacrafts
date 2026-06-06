@@ -387,7 +387,8 @@
     .product-img-wrap img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      /* show the whole image, centered (no cropping) on the pink frame */
+      object-fit: contain;
     }
     .product-img-placeholder {
       font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -396,6 +397,81 @@
       text-align: center;
       padding: 8px;
       line-height: 1.5;
+    }
+
+    /* ── Carousel (multiple product images) ─────────────────── */
+    .carousel { position: relative; width: 100%; height: 100%; }
+    .carousel-track {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .carousel-track::-webkit-scrollbar { display: none; }
+    .carousel-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      scroll-snap-align: center;
+      background: var(--pink);
+    }
+    .carousel-slide.slide-failed { visibility: hidden; }
+    .carousel-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.82);
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(45,36,51,0.18);
+      transition: background 0.15s ease;
+    }
+    @media (hover: hover) { .carousel-nav:hover { background: #fff; } }
+    .carousel-nav.prev { left: 8px; }
+    .carousel-nav.next { right: 8px; }
+    .carousel-dots {
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .carousel-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.7);
+      box-shadow: 0 0 2px rgba(45,36,51,0.4);
+      pointer-events: auto;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .carousel-dot.active { background: var(--pink-deep); transform: scale(1.25); }
+
+    /* highlight a product when arrived at via a shared WhatsApp link */
+    .product-highlight {
+      animation: product-pulse 2.2s ease;
+      border-radius: 8px;
+    }
+    @keyframes product-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(229,164,188,0); }
+      15%      { box-shadow: 0 0 0 4px rgba(229,164,188,0.65); }
     }
     .product-body {}
     .product-category {
@@ -761,7 +837,7 @@
       <div class="container">
         <span class="label" id="about-heading">Our story</span>
         <blockquote>
-          "We believe the most beautiful gifts are the ones made slowly — with your own hands, or ours."
+          "We believe the most beautiful gifts are the ones that are customized personally for you."
         </blockquote>
         <span class="about-sig">— Famacrafts, Lahore</span>
       </div>
@@ -882,9 +958,43 @@
       if (!D) { console.error('products.js not loaded'); return; }
 
       // ── Helpers ───────────────────────────────────────────
-      function waUrl(productName) {
+      // Deep link back to a specific product card (so the customer's WhatsApp
+      // message tells Famacrafts exactly which product they're asking about)
+      function productLink(pid) {
+        return location.origin + location.pathname + '#product-' + pid;
+      }
+
+      function waUrl(productName, link) {
         var msg = D.whatsappTemplate.replace('{PRODUCT}', productName);
+        if (link) { msg += '\n\nProduct link: ' + link; }
         return 'https://wa.me/' + D.whatsapp + '?text=' + encodeURIComponent(msg);
+      }
+
+      // Carousel: wire arrow/dot nav (delegated) and keep dots in sync on scroll
+      function initCarousels(container) {
+        var carousels = container.querySelectorAll('.carousel[data-count]');
+        Array.prototype.forEach.call(carousels, function (c) {
+          if (parseInt(c.getAttribute('data-count'), 10) <= 1) { return; }
+          var track = c.querySelector('.carousel-track');
+          var dots  = c.querySelectorAll('.carousel-dot');
+          if (!track || !dots.length) { return; }
+          track.addEventListener('scroll', function () {
+            var idx = Math.round(track.scrollLeft / track.clientWidth);
+            Array.prototype.forEach.call(dots, function (d, i) {
+              d.classList.toggle('active', i === idx);
+            });
+          }, { passive: true });
+        });
+      }
+
+      // Smooth-scroll + highlight a product when opened via a #product-<id> link
+      function maybeScrollToHash() {
+        if (location.hash.indexOf('#product-') !== 0) { return; }
+        var el = document.getElementById(location.hash.slice(1));
+        if (!el) { return; }
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('product-highlight');
+        setTimeout(function () { el.classList.remove('product-highlight'); }, 2400);
       }
 
       function esc(str) {
@@ -913,22 +1023,44 @@
         }
         var html = '';
         products.forEach(function (p, i) {
-          // Normalise field names (Supabase uses image_url; products.js uses image)
-          var imgRaw  = p.image_url || p.image || '';
-          var src800  = imgSrc(imgRaw, 800);
           var isFirst = i === 0;
           var pid     = p.id || ('p' + i);
+
+          // Collect image list: prefer the images[] array, fall back to single image_url/image
+          var imgs = [];
+          if (Array.isArray(p.images)) {
+            imgs = p.images.filter(function (u) { return u && String(u).trim(); });
+          }
+          if (!imgs.length) {
+            var single = p.image_url || p.image || '';
+            if (single) { imgs = [single]; }
+          }
 
           html += '<article class="product" id="product-' + esc(pid) + '">';
 
           html += '<div class="product-img-wrap">';
-          if (imgRaw) {
-            html += '<img'
-              + ' src="' + esc(src800) + '"'
-              + ' alt="' + esc(p.name) + '"'
-              + (isFirst ? ' loading="eager"' : ' loading="lazy"')
-              + ' onerror="this.parentNode.innerHTML=\'<div class=\\\"product-img-placeholder\\\">image<br>coming soon</div>\'"'
-              + ' />';
+          if (imgs.length) {
+            html += '<div class="carousel" data-count="' + imgs.length + '">';
+            html += '<div class="carousel-track">';
+            imgs.forEach(function (u, idx) {
+              html += '<img class="carousel-slide"'
+                + ' src="' + esc(imgSrc(u, 800)) + '"'
+                + ' alt="' + esc(p.name) + (imgs.length > 1 ? ' — photo ' + (idx + 1) + ' of ' + imgs.length : '') + '"'
+                + ((isFirst && idx === 0) ? ' loading="eager"' : ' loading="lazy"')
+                + ' onerror="this.classList.add(\'slide-failed\')"'
+                + ' />';
+            });
+            html += '</div>';
+            if (imgs.length > 1) {
+              html += '<button type="button" class="carousel-nav prev" aria-label="Previous image">‹</button>';
+              html += '<button type="button" class="carousel-nav next" aria-label="Next image">›</button>';
+              html += '<div class="carousel-dots">';
+              imgs.forEach(function (u, idx) {
+                html += '<span class="carousel-dot' + (idx === 0 ? ' active' : '') + '" data-idx="' + idx + '"></span>';
+              });
+              html += '</div>';
+            }
+            html += '</div>';
           } else {
             html += '<div class="product-img-placeholder">image<br>coming soon</div>';
           }
@@ -942,7 +1074,7 @@
             html += '<p class="product-desc">' + esc(p.description) + '</p>';
           }
           html += '<div class="product-actions">';
-          html += '<a class="btn" href="' + esc(waUrl(p.name)) + '" target="_blank" rel="noopener">';
+          html += '<a class="btn" href="' + esc(waUrl(p.name, productLink(pid))) + '" target="_blank" rel="noopener">';
           html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/></svg>';
           html += 'Order on WhatsApp</a>';
           if (p.description) {
@@ -953,6 +1085,8 @@
           html += '</article>';
         });
         catalogGrid.innerHTML = html;
+        initCarousels(catalogGrid);
+        maybeScrollToHash();
       }
 
       // ── Render workshops ──────────────────────────────────
@@ -1012,6 +1146,21 @@
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) closeMenu(); });
 
         document.getElementById('catalog-grid').addEventListener('click', function (e) {
+          // Carousel arrows
+          var nav = e.target.closest('.carousel-nav');
+          if (nav) {
+            var track = nav.closest('.carousel').querySelector('.carousel-track');
+            track.scrollBy({ left: nav.classList.contains('next') ? track.clientWidth : -track.clientWidth, behavior: 'smooth' });
+            return;
+          }
+          // Carousel dots → jump to that image
+          var dot = e.target.closest('.carousel-dot');
+          if (dot) {
+            var t = dot.closest('.carousel').querySelector('.carousel-track');
+            t.scrollTo({ left: t.clientWidth * (parseInt(dot.getAttribute('data-idx'), 10) || 0), behavior: 'smooth' });
+            return;
+          }
+          // Read more
           var btn = e.target.closest('.read-more-btn');
           if (!btn) return;
           var card = document.getElementById(btn.dataset.target);
