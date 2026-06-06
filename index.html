@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famacrafts — Handmade, with love</title>
+  <meta name="description" content="Handmade flower boxes, gift baskets, pressed-flower cards, and workshop kits — crafted with care in Lahore. Order on WhatsApp." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Famacrafts — Handmade, with love" />
+  <meta property="og:description" content="Handmade flower boxes, gift baskets, and workshop kits crafted in Lahore." />
+  <meta property="og:type" content="website" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Dancing+Script:wght@500;600&family=Italiana&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    img { display: block; max-width: 100%; }
+    button, a { cursor: pointer; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ── Tokens ─────────────────────────────────────────────── */
+    :root {
+      --bg:            #FBF7FA;
+      --bg-2:          #F2EBF1;
+      --pink:          #F5D5E0;
+      --pink-deep:     #E5A4BC;
+      --rose:          #F8DCE3;
+      --mint:          #D6E8D6;
+      --mint-deep:     #A6C7B0;
+      --blue:          #D5E3EE;
+      --blue-deep:     #9ABDD3;
+      --lavender:      #E0D6EC;
+      --lavender-deep: #B7A4D1;
+      --plum:          #5A4663;
+      --ink:           #2D2433;
+      --ink-soft:      #6A5E73;
+      --line:          rgba(45,36,51,0.12);
+
+      --serif:  'Cormorant Garamond', Georgia, serif;
+      --label:  'Italiana', serif;
+      --script: 'Dancing Script', cursive;
+      --body:   'Inter', system-ui, sans-serif;
+    }
+
+    /* ── Base ────────────────────────────────────────────────── */
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--body);
+      font-weight: 300;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Paper grain overlay ─────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.10;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 300px 300px;
+    }
+
+    /* ── Container ───────────────────────────────────────────── */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    @media (min-width: 720px)  { .container { padding: 0 40px; } }
+    @media (min-width: 1024px) { .container { padding: 0 60px; } }
+
+    /* ── Typography helpers ──────────────────────────────────── */
+    .label {
+      font-family: var(--label);
+      font-size: 11px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--plum);
+      display: block;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(36px, 6vw, 64px);
+      letter-spacing: -0.5px;
+      line-height: 1.05;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+    .script {
+      font-family: var(--script);
+      font-weight: 500;
+      font-style: normal;
+      color: var(--pink-deep);
+      display: inline-block;
+      transform: rotate(-2deg);
+      font-size: 1.15em;
+    }
+    .section-head {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+    .section-head p {
+      font-size: 16px;
+      color: var(--ink-soft);
+      max-width: 38ch;
+      margin: 18px auto 0;
+      line-height: 1.65;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      background: var(--pink-deep);
+      color: #fff;
+      padding: 10px 20px;
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      border-radius: 999px;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+    @media (hover: hover) {
+      .btn:hover { background: var(--plum); transform: translateY(-1px); }
+    }
+    .btn.ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    @media (hover: hover) {
+      .btn.ghost:hover { background: var(--pink); border-color: var(--pink-deep); color: var(--plum); transform: translateY(-1px); }
+    }
+    .btn-full { width: 100%; justify-content: center; padding: 14px 20px; font-size: 11px; }
+
+    /* ── Nav ─────────────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(251,247,250,0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      height: 56px;
+      display: flex;
+      align-items: center;
+    }
+    .nav .container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      font-family: var(--script);
+      font-weight: 600;
+      font-size: 28px;
+      color: var(--ink);
+      line-height: 1;
+    }
+    @media (min-width: 720px) { .nav-brand { font-size: 32px; } }
+    .nav-menu-btn {
+      background: var(--pink-deep);
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 999px;
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+    @media (hover: hover) { .nav-menu-btn:hover { background: var(--plum); } }
+
+    /* ── Full-screen nav overlay ─────────────────────────────── */
+    .nav-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: var(--rose);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transform: translateY(-100%);
+      transition: transform 0.35s ease;
+    }
+    .nav-overlay.open { transform: translateY(0); }
+    .nav-overlay-close {
+      position: absolute;
+      top: 18px;
+      right: 24px;
+      background: transparent;
+      border: none;
+      font-size: 28px;
+      color: var(--ink);
+      line-height: 1;
+      padding: 8px;
+    }
+    .nav-links {
+      list-style: none;
+      text-align: center;
+    }
+    .nav-links li {
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+    }
+    .nav-links li:first-child { border-top: 1px solid var(--line); }
+    .nav-links a {
+      font-family: var(--script);
+      font-size: clamp(36px, 8vw, 52px);
+      color: var(--ink);
+      transition: color 0.2s;
+      display: block;
+      padding: 4px 48px;
+    }
+    @media (hover: hover) { .nav-links a:hover { color: var(--pink-deep); } }
+
+    /* ── Hero ────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(160deg, var(--bg) 0%, var(--rose) 100%);
+      padding: 70px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (min-width: 720px)  { .hero { padding: 90px 0 110px; } }
+    @media (min-width: 1024px) { .hero { padding: 110px 0 130px; } }
+    .hero-logo {
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+      margin: 0 auto 28px;
+      mix-blend-mode: multiply;
+      filter: contrast(1.15) saturate(0);
+    }
+    @media (min-width: 720px) { .hero-logo { width: 260px; height: 260px; } }
+    @media (min-width: 1024px) { .hero-logo { width: 280px; height: 280px; } }
+    .hero-eyebrow {
+      font-family: var(--label);
+      font-size: 11px;
+      letter-spacing: 5px;
+      color: var(--plum);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(52px, 10vw, 104px);
+      line-height: 1.0;
+      letter-spacing: -0.5px;
+      color: var(--ink);
+      text-wrap: balance;
+      margin-bottom: 24px;
+    }
+    .hero-sub {
+      font-size: clamp(14px, 2vw, 17px);
+      color: var(--ink-soft);
+      max-width: 32ch;
+      margin: 0 auto 36px;
+      font-weight: 300;
+      line-height: 1.65;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Botanical SVG decorations */
+    .botanical {
+      position: absolute;
+      opacity: 0.55;
+      pointer-events: none;
+      color: var(--pink-deep);
+    }
+    .botanical-tl { top: 24px; left: 16px; width: clamp(60px,8vw,110px); }
+    .botanical-tr { top: 24px; right: 16px; width: clamp(60px,8vw,110px); transform: scaleX(-1); }
+    .botanical-bl { bottom: 24px; left: 16px; width: clamp(50px,6vw,90px); transform: scaleY(-1); }
+    .botanical-br { bottom: 24px; right: 16px; width: clamp(50px,6vw,90px); transform: scale(-1); }
+
+    /* ── About ───────────────────────────────────────────────── */
+    .about {
+      background: var(--mint);
+      padding: 72px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (min-width: 720px)  { .about { padding: 110px 0; } }
+    @media (min-width: 1024px) { .about { padding: 130px 0; } }
+    .about blockquote {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: clamp(24px, 4vw, 40px);
+      line-height: 1.35;
+      color: var(--ink);
+      max-width: 700px;
+      margin: 0 auto 28px;
+      text-wrap: balance;
+    }
+    .about-sig {
+      font-family: var(--script);
+      font-size: 28px;
+      color: var(--plum);
+      display: block;
+    }
+    @media (min-width: 720px) { .about-sig { font-size: 32px; } }
+    .about .botanical {
+      opacity: 0.35;
+      color: var(--mint-deep);
+    }
+    .about .botanical-tl { top: 12px; left: 12px; }
+    .about .botanical-br { bottom: 12px; right: 12px; }
+
+    /* ── Catalog ─────────────────────────────────────────────── */
+    .catalog {
+      background: var(--bg);
+      padding: 72px 0;
+    }
+    @media (min-width: 720px)  { .catalog { padding: 110px 0; } }
+    @media (min-width: 1024px) { .catalog { padding: 130px 0; } }
+    .catalog-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    @media (min-width: 720px) { .catalog-grid { gap: 28px; } }
+
+    /* Product card */
+    .product {
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 4px 18px rgba(45,36,51,0.06);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 40% 1fr;
+      gap: 16px;
+      align-items: center;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    @media (min-width: 720px) {
+      .product { padding: 32px; gap: 36px; grid-template-columns: 30% 1fr; }
+    }
+    @media (min-width: 1024px) {
+      .product { padding: 36px; gap: 48px; grid-template-columns: 26% 1fr; }
+    }
+    @media (hover: hover) {
+      .product:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(45,36,51,0.11); }
+    }
+    .product-img-wrap {
+      aspect-ratio: 1 / 1;
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--pink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .product-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .product-img-placeholder {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 10px;
+      color: var(--pink-deep);
+      text-align: center;
+      padding: 8px;
+      line-height: 1.5;
+    }
+    .product-body {}
+    .product-category {
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--plum);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .product-name {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 500;
+      font-size: clamp(20px, 3vw, 36px);
+      color: var(--ink);
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+    .product-tagline {
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+    @media (min-width: 720px) { .product-tagline { font-size: 15px; } }
+    .product-desc {
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.65;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .product.expanded .product-desc { display: block; }
+    .product-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Workshops ───────────────────────────────────────────── */
+    .workshops {
+      background: var(--rose);
+      padding: 72px 0;
+    }
+    @media (min-width: 720px)  { .workshops { padding: 110px 0; } }
+    @media (min-width: 1024px) { .workshops { padding: 130px 0; } }
+    .workshops-grid {
+      display: grid;
+      gap: 24px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 720px) {
+      .workshops-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .workshop-card {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 4px 20px rgba(45,36,51,0.07);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .workshop-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 70px;
+      height: 70px;
+      background: var(--mint);
+      border-radius: 0 0 100% 0;
+      opacity: 0.6;
+    }
+    .workshop-date {
+      font-family: var(--label);
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--plum);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .workshop-title {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(26px, 4vw, 38px);
+      color: var(--ink);
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .workshop-desc {
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.65;
+      margin-bottom: 20px;
+    }
+    .workshop-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+    .workshop-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .workshop-meta-item svg {
+      flex-shrink: 0;
+      color: var(--pink-deep);
+    }
+
+    /* ── Custom order form ───────────────────────────────────── */
+    .custom {
+      background: var(--lavender);
+      padding: 72px 0;
+    }
+    @media (min-width: 720px)  { .custom { padding: 110px 0; } }
+    @media (min-width: 1024px) { .custom { padding: 130px 0; } }
+    .custom-frame {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(45,36,51,0.09);
+      padding: 36px 24px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    @media (min-width: 720px) { .custom-frame { padding: 52px 48px; } }
+    .form-row {
+      margin-bottom: 20px;
+    }
+    .form-row label {
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--plum);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+      width: 100%;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 17px;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .form-row input:focus,
+    .form-row select:focus,
+    .form-row textarea:focus { border-color: var(--pink-deep); }
+    .form-row textarea { min-height: 80px; resize: vertical; }
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '↓';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--ink-soft);
+      font-size: 12px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      background: var(--ink);
+      color: rgba(255,255,255,0.7);
+      padding: 64px 0 32px;
+      text-align: center;
+    }
+    .footer-brand {
+      font-family: var(--script);
+      font-size: clamp(52px, 8vw, 80px);
+      color: var(--pink-deep);
+      line-height: 1;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .footer-label {
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--pink-deep);
+      opacity: 0.7;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+      display: block;
+    }
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+    @media (min-width: 720px) {
+      .footer-links { flex-direction: row; justify-content: center; gap: 32px; }
+    }
+    .footer-links a {
+      font-size: 13px;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.5px;
+      transition: color 0.2s;
+    }
+    @media (hover: hover) { .footer-links a:hover { color: var(--pink-deep); } }
+    .footer-copy {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 24px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1px;
+    }
+
+    /* ── WhatsApp FAB ────────────────────────────────────────── */
+    .fab {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 150;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--pink-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(229,164,188,0.45);
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    @media (hover: hover) {
+      .fab:hover {
+        background: var(--plum);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 28px rgba(90,70,99,0.35);
+      }
+    }
+
+    /* ── Empty state ─────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--ink-soft);
+      font-style: italic;
+      font-family: var(--serif);
+      font-size: 22px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Sticky nav ─────────────────────────────────────────── -->
+  <header class="nav" role="banner">
+    <div class="container">
+      <a href="#top" class="nav-brand">Famacrafts</a>
+      <button class="nav-menu-btn" id="menuOpenBtn" aria-label="Open navigation menu">Menu</button>
+    </div>
+  </header>
+
+  <!-- ── Full-screen overlay nav ───────────────────────────── -->
+  <div class="nav-overlay" id="navOverlay" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <button class="nav-overlay-close" id="menuCloseBtn" aria-label="Close navigation menu">✕</button>
+    <ul class="nav-links">
+      <li><a href="#about"     class="nav-link">About</a></li>
+      <li><a href="#catalog"   class="nav-link">Catalog</a></li>
+      <li><a href="#workshops" class="nav-link">Workshops</a></li>
+      <li><a href="#custom"    class="nav-link">Custom Orders</a></li>
+    </ul>
+  </div>
+
+  <main id="top">
+
+    <!-- ── Hero ─────────────────────────────────────────────── -->
+    <section class="hero" aria-labelledby="hero-heading">
+
+      <!-- Botanical corner decorations -->
+      <svg class="botanical botanical-tl" viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M60 150 C60 80, 20 60, 10 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M60 120 C40 100, 15 95, 5 70" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M60 90  C50 75,  30 72, 18 50" stroke="currentColor" stroke-width="1.0" stroke-linecap="round"/>
+        <ellipse cx="10" cy="10"  rx="7" ry="10" transform="rotate(-30 10 10)"  stroke="currentColor" stroke-width="1.1" fill="none"/>
+        <ellipse cx="5"  cy="70"  rx="6" ry="9"  transform="rotate(-60 5 70)"   stroke="currentColor" stroke-width="1.0" fill="none"/>
+        <ellipse cx="18" cy="50"  rx="5" ry="8"  transform="rotate(-45 18 50)"  stroke="currentColor" stroke-width="1.0" fill="none"/>
+        <circle  cx="60" cy="155" r="4" stroke="currentColor" stroke-width="1.1" fill="none"/>
+      </svg>
+
+      <svg class="botanical botanical-tr" viewBox="0 0 120 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M60 150 C60 80, 20 60, 10 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M60 120 C40 100, 15 95, 5 70" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M60 90  C50 75,  30 72, 18 50" stroke="currentColor" stroke-width="1.0" stroke-linecap="round"/>
+        <ellipse cx="10" cy="10"  rx="7" ry="10" transform="rotate(-30 10 10)"  stroke="currentColor" stroke-width="1.1" fill="none"/>
+        <ellipse cx="5"  cy="70"  rx="6" ry="9"  transform="rotate(-60 5 70)"   stroke="currentColor" stroke-width="1.0" fill="none"/>
+        <ellipse cx="18" cy="50"  rx="5" ry="8"  transform="rotate(-45 18 50)"  stroke="currentColor" stroke-width="1.0" fill="none"/>
+      </svg>
+
+      <svg class="botanical botanical-bl" viewBox="0 0 100 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 10 C50 70, 15 85, 8 130" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M50 40  C32 55,  10 55, 4 80"  stroke="currentColor" stroke-width="1.0" stroke-linecap="round"/>
+        <ellipse cx="8"  cy="130" rx="6" ry="9"  transform="rotate(20 8 130)"  stroke="currentColor" stroke-width="1.1" fill="none"/>
+        <ellipse cx="4"  cy="80"  rx="5" ry="8"  transform="rotate(50 4 80)"   stroke="currentColor" stroke-width="1.0" fill="none"/>
+      </svg>
+
+      <svg class="botanical botanical-br" viewBox="0 0 100 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 10 C50 70, 15 85, 8 130" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M50 40  C32 55,  10 55, 4 80"  stroke="currentColor" stroke-width="1.0" stroke-linecap="round"/>
+        <ellipse cx="8"  cy="130" rx="6" ry="9"  transform="rotate(20 8 130)"  stroke="currentColor" stroke-width="1.1" fill="none"/>
+        <ellipse cx="4"  cy="80"  rx="5" ry="8"  transform="rotate(50 4 80)"   stroke="currentColor" stroke-width="1.0" fill="none"/>
+      </svg>
+
+      <div class="container">
+        <!-- Logo — mix-blend-mode neutralises white JPG bg -->
+        <img
+          src="assets/famacrafts-logo.jpg"
+          alt="Famacrafts logo"
+          class="hero-logo"
+          onerror="this.style.display='none'"
+        />
+
+        <p class="hero-eyebrow">Handmade · Slow · With love</p>
+
+        <h1 id="hero-heading">
+          Made from<br />
+          the heart,<br />
+          with <span class="script">love</span>.
+        </h1>
+
+        <p class="hero-sub">Handcrafted flower boxes, gift baskets, and workshop kits — made slowly, in Lahore.</p>
+
+        <div class="hero-actions">
+          <a href="#catalog" class="btn">Browse Catalog</a>
+          <a href="#workshops" class="btn ghost">Our Workshops</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── About ──────────────────────────────────────────────── -->
+    <section class="about" id="about" aria-labelledby="about-heading">
+
+      <svg class="botanical botanical-tl" style="width:70px;opacity:0.35;color:var(--mint-deep);" viewBox="0 0 120 160" fill="none" aria-hidden="true">
+        <path d="M60 150 C60 80, 20 60, 10 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M60 120 C40 100, 15 95, 5 70" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+        <ellipse cx="10" cy="10" rx="7" ry="10" transform="rotate(-30 10 10)" stroke="currentColor" stroke-width="1.1" fill="none"/>
+      </svg>
+
+      <svg class="botanical botanical-br" style="width:70px;opacity:0.35;color:var(--mint-deep);" viewBox="0 0 100 140" fill="none" aria-hidden="true">
+        <path d="M50 10 C50 70, 15 85, 8 130" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="8" cy="130" rx="6" ry="9" transform="rotate(20 8 130)" stroke="currentColor" stroke-width="1.1" fill="none"/>
+      </svg>
+
+      <div class="container">
+        <span class="label" id="about-heading">Our story</span>
+        <blockquote>
+          "We believe the most beautiful gifts are the ones made slowly — with your own hands, or ours."
+        </blockquote>
+        <span class="about-sig">— Famacrafts, Lahore</span>
+      </div>
+    </section>
+
+    <!-- ── Catalog ────────────────────────────────────────────── -->
+    <section class="catalog" id="catalog" aria-labelledby="catalog-heading">
+      <div class="container">
+        <div class="section-head">
+          <span class="label" id="catalog-heading">What we make</span>
+          <h2>Each piece,<br /><span class="script">handcrafted</span>.</h2>
+          <p>Browse our collection and tap "Order on WhatsApp" to start a conversation — we'll take care of the rest.</p>
+        </div>
+        <div class="catalog-grid" id="catalog-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Workshops ──────────────────────────────────────────── -->
+    <section class="workshops" id="workshops" aria-labelledby="workshops-heading">
+      <div class="container">
+        <div class="section-head">
+          <span class="label" id="workshops-heading">Gather with us</span>
+          <h2>Make something<br /><span class="script">together</span>.</h2>
+          <p>Guided, hands-on workshops in Lahore. All materials included. All skill levels welcome.</p>
+        </div>
+        <div class="workshops-grid" id="workshops-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Custom orders ──────────────────────────────────────── -->
+    <section class="custom" id="custom" aria-labelledby="custom-heading">
+      <div class="container">
+        <div class="section-head">
+          <span class="label" id="custom-heading">Bespoke</span>
+          <h2>Something made<br />just for <span class="script">you</span>.</h2>
+          <p>Wedding favours, baby showers, corporate gifting — share the details and we'll create a mood board within 24 hours.</p>
+        </div>
+        <div class="custom-frame">
+          <form id="customForm" novalidate>
+            <div class="form-row">
+              <label for="cf-name">Your Name</label>
+              <input type="text" id="cf-name" name="name" placeholder="e.g. Sara" autocomplete="name" required />
+            </div>
+            <div class="form-row">
+              <label for="cf-occasion">Occasion</label>
+              <div class="select-wrap">
+                <select id="cf-occasion" name="occasion" required>
+                  <option value="" disabled selected>Select an occasion…</option>
+                  <option>Wedding Favours</option>
+                  <option>Baby Shower</option>
+                  <option>Birthday Gift</option>
+                  <option>Mother's Day</option>
+                  <option>Eid Gift</option>
+                  <option>Corporate Gifting</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="cf-qty">Approximate Quantity</label>
+              <input type="text" id="cf-qty" name="qty" placeholder="e.g. 50 pieces" />
+            </div>
+            <div class="form-row">
+              <label for="cf-notes">Tell us more</label>
+              <textarea id="cf-notes" name="notes" placeholder="Colours, theme, budget, deadline…"></textarea>
+            </div>
+            <button type="submit" class="btn btn-full">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/>
+              </svg>
+              Send on WhatsApp
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <span class="footer-brand">Famacrafts</span>
+      <span class="footer-label">Made by hand · Made with love</span>
+      <nav class="footer-links" aria-label="Footer links">
+        <a id="footer-ig"  href="#" target="_blank" rel="noopener">Instagram</a>
+        <a id="footer-wa"  href="#" target="_blank" rel="noopener">WhatsApp</a>
+        <a id="footer-loc" href="#">Lahore, Pakistan</a>
+      </nav>
+      <p class="footer-copy">© <span id="copy-year"></span> Famacrafts. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ── WhatsApp FAB ───────────────────────────────────────── -->
+  <a class="fab" id="fabBtn" href="#" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/>
+    </svg>
+  </a>
+
+  <!-- ── Data + Supabase ───────────────────────────────────── -->
+  <script src="config.js"></script>
+  <script src="products.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <!-- ── App script ─────────────────────────────────────────── -->
+  <script>
+    (function () {
+      ‘use strict’;
+
+      var D = window.FAMACRAFTS;
+      if (!D) { console.error(‘products.js not loaded’); return; }
+
+      // ── Helpers ───────────────────────────────────────────
+      function waUrl(productName) {
+        var msg = D.whatsappTemplate.replace(‘{PRODUCT}’, productName);
+        return ‘https://wa.me/’ + D.whatsapp + ‘?text=’ + encodeURIComponent(msg);
+      }
+
+      function esc(str) {
+        return String(str || ‘’)
+          .replace(/&/g, ‘&amp;’)
+          .replace(/</g, ‘&lt;’)
+          .replace(/>/g, ‘&gt;’)
+          .replace(/"/g, ‘&quot;’);
+      }
+
+      // Inject Cloudinary optimisation params if URL is a Cloudinary link
+      function imgSrc(raw, w) {
+        if (!raw) return ‘’;
+        if (raw.includes(‘res.cloudinary.com’) && raw.includes(‘/upload/’)) {
+          return raw.replace(‘/upload/’, ‘/upload/w_’ + w + ‘,q_80,f_auto/’);
+        }
+        return raw;
+      }
+
+      // ── Render products ───────────────────────────────────
+      function renderProducts(products) {
+        var catalogGrid = document.getElementById(‘catalog-grid’);
+        if (!products || products.length === 0) {
+          catalogGrid.innerHTML = ‘<p class="empty-state">Products coming soon — check back shortly.</p>’;
+          return;
+        }
+        var html = ‘’;
+        products.forEach(function (p, i) {
+          // Normalise field names (Supabase uses image_url; products.js uses image)
+          var imgRaw  = p.image_url || p.image || ‘’;
+          var src800  = imgSrc(imgRaw, 800);
+          var isFirst = i === 0;
+          var pid     = p.id || (‘p’ + i);
+
+          html += ‘<article class="product" id="product-’ + esc(pid) + ‘">’;
+
+          html += ‘<div class="product-img-wrap">’;
+          if (imgRaw) {
+            html += ‘<img’
+              + ‘ src="’ + esc(src800) + ‘"’
+              + ‘ alt="’ + esc(p.name) + ‘"’
+              + (isFirst ? ‘ loading="eager"’ : ‘ loading="lazy"’)
+              + ‘ onerror="this.parentNode.innerHTML=\’<div class=\\\"product-img-placeholder\\\">image<br>coming soon</div>\’"’
+              + ‘ />’;
+          } else {
+            html += ‘<div class="product-img-placeholder">image<br>coming soon</div>’;
+          }
+          html += ‘</div>’;
+
+          html += ‘<div class="product-body">’;
+          html += ‘<p class="product-category">’ + esc(p.category) + ‘</p>’;
+          html += ‘<h3 class="product-name">’ + esc(p.name) + ‘</h3>’;
+          html += ‘<p class="product-tagline">’ + esc(p.tagline) + ‘</p>’;
+          if (p.description) {
+            html += ‘<p class="product-desc">’ + esc(p.description) + ‘</p>’;
+          }
+          html += ‘<div class="product-actions">’;
+          html += ‘<a class="btn" href="’ + esc(waUrl(p.name)) + ‘" target="_blank" rel="noopener">’;
+          html += ‘<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/></svg>’;
+          html += ‘Order on WhatsApp</a>’;
+          if (p.description) {
+            html += ‘<button class="btn ghost read-more-btn" type="button" data-target="product-’ + esc(pid) + ‘">Read more</button>’;
+          }
+          html += ‘</div>’;
+          html += ‘</div>’;
+          html += ‘</article>’;
+        });
+        catalogGrid.innerHTML = html;
+      }
+
+      // ── Render workshops ──────────────────────────────────
+      function renderWorkshops(workshops) {
+        var workshopsGrid = document.getElementById(‘workshops-grid’);
+        if (!workshops || workshops.length === 0) {
+          workshopsGrid.innerHTML = ‘<p class="empty-state">No upcoming workshops — follow us on Instagram for announcements.</p>’;
+          return;
+        }
+        var whtml = ‘’;
+        workshops.forEach(function (w) {
+          // Normalise field names (Supabase: date_label/time_label; products.js: date/time)
+          var dateLabel = w.date_label || w.date || ‘’;
+          var timeLabel = w.time_label || w.time || ‘’;
+          whtml += ‘<article class="workshop-card">’;
+          whtml += ‘<p class="workshop-date">’ + esc(dateLabel) + ‘</p>’;
+          whtml += ‘<h3 class="workshop-title">’ + esc(w.title) + ‘</h3>’;
+          whtml += ‘<p class="workshop-desc">’ + esc(w.description) + ‘</p>’;
+          whtml += ‘<div class="workshop-meta">’;
+          if (timeLabel) {
+            whtml += ‘<div class="workshop-meta-item">’;
+            whtml += ‘<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>’;
+            whtml += ‘<span>’ + esc(timeLabel) + ‘</span></div>’;
+          }
+          if (w.location) {
+            whtml += ‘<div class="workshop-meta-item">’;
+            whtml += ‘<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>’;
+            whtml += ‘<span>’ + esc(w.location) + ‘</span></div>’;
+          }
+          whtml += ‘</div>’;
+          whtml += ‘<a class="btn" href="’ + esc(waUrl(w.title)) + ‘" target="_blank" rel="noopener">’ + esc(w.cta_label || w.cta || ‘Reserve my seat’) + ‘</a>’;
+          whtml += ‘</article>’;
+        });
+        workshopsGrid.innerHTML = whtml;
+      }
+
+      // ── Wire static parts (footer, FAB, nav) ──────────────
+      function wireStatic() {
+        document.getElementById(‘copy-year’).textContent = new Date().getFullYear();
+        var footerIg  = document.getElementById(‘footer-ig’);
+        var footerWa  = document.getElementById(‘footer-wa’);
+        var footerLoc = document.getElementById(‘footer-loc’);
+        var fabBtn    = document.getElementById(‘fabBtn’);
+        if (D.instagramUrl) footerIg.href = D.instagramUrl;
+        footerWa.href = ‘https://wa.me/’ + D.whatsapp;
+        footerLoc.textContent = D.location || ‘Lahore, Pakistan’;
+        fabBtn.href = ‘https://wa.me/’ + D.whatsapp;
+
+        var overlay  = document.getElementById(‘navOverlay’);
+        var openBtn  = document.getElementById(‘menuOpenBtn’);
+        var closeBtn = document.getElementById(‘menuCloseBtn’);
+        function openMenu()  { overlay.classList.add(‘open’);    document.body.style.overflow = ‘hidden’; closeBtn.focus(); }
+        function closeMenu() { overlay.classList.remove(‘open’); document.body.style.overflow = ‘’;       openBtn.focus();  }
+        openBtn.addEventListener(‘click’, openMenu);
+        closeBtn.addEventListener(‘click’, closeMenu);
+        document.querySelectorAll(‘.nav-link’).forEach(function (l) { l.addEventListener(‘click’, closeMenu); });
+        document.addEventListener(‘keydown’, function (e) { if (e.key === ‘Escape’ && overlay.classList.contains(‘open’)) closeMenu(); });
+
+        document.getElementById(‘catalog-grid’).addEventListener(‘click’, function (e) {
+          var btn = e.target.closest(‘.read-more-btn’);
+          if (!btn) return;
+          var card = document.getElementById(btn.dataset.target);
+          if (!card) return;
+          btn.textContent = card.classList.toggle(‘expanded’) ? ‘Less’ : ‘Read more’;
+        });
+
+        document.getElementById(‘customForm’).addEventListener(‘submit’, function (e) {
+          e.preventDefault();
+          var name     = document.getElementById(‘cf-name’).value.trim();
+          var occasion = document.getElementById(‘cf-occasion’).value;
+          var qty      = document.getElementById(‘cf-qty’).value.trim();
+          var notes    = document.getElementById(‘cf-notes’).value.trim();
+          if (!name || !occasion) { alert(‘Please enter your name and select an occasion.’); return; }
+          var lines = [
+            ‘Hi Famacrafts! I’d like to discuss a custom order.’,
+            ‘’,
+            ‘Name: ‘     + name,
+            ‘Occasion: ‘ + occasion,
+            ‘Quantity: ‘ + (qty   || ‘TBD’),
+            ‘Details: ‘  + (notes || ‘Will share more on chat.’),
+          ];
+          window.open(‘https://wa.me/’ + D.whatsapp + ‘?text=’ + encodeURIComponent(lines.join(‘\n’)), ‘_blank’, ‘noopener’);
+        });
+      }
+
+      // ── Boot: Supabase if configured, else products.js ────
+      async function boot() {
+        wireStatic();
+
+        var useSupabase = window.SUPABASE_URL && window.SUPABASE_ANON_KEY
+          && window.SUPABASE_URL !== ‘’ && window.SUPABASE_ANON_KEY !== ‘’;
+
+        if (useSupabase && window.supabase) {
+          // Show loading state
+          document.getElementById(‘catalog-grid’).innerHTML =
+            ‘<p style="text-align:center;font-family:var(--serif);font-style:italic;font-size:20px;color:var(--ink-soft);padding:48px">Loading…</p>’;
+          document.getElementById(‘workshops-grid’).innerHTML =
+            ‘<p style="text-align:center;font-family:var(--serif);font-style:italic;font-size:18px;color:var(--ink-soft);padding:32px">Loading…</p>’;
+
+          try {
+            var sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+            var results = await Promise.all([
+              sb.from(‘products’).select(‘*’)
+                .eq(‘available’, true)
+                .order(‘featured’,      { ascending: false })
+                .order(‘display_order’, { ascending: true  })
+                .order(‘created_at’,    { ascending: false }),
+              sb.from(‘workshops’).select(‘*’)
+                .eq(‘active’, true)
+                .order(‘display_order’, { ascending: true  })
+                .order(‘created_at’,    { ascending: false }),
+            ]);
+            renderProducts(results[0].data  || []);
+            renderWorkshops(results[1].data || []);
+          } catch (err) {
+            console.warn(‘Supabase fetch failed, falling back to products.js’, err);
+            renderProducts(D.products   || []);
+            renderWorkshops(D.workshops || []);
+          }
+        } else {
+          // No Supabase configured — use products.js data
+          renderProducts(D.products   || []);
+          renderWorkshops(D.workshops || []);
+        }
+      }
+
+      boot();
+
+    })();
+  </script>
+
+</body>
+</html>

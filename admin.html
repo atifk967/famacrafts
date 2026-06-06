@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Famacrafts — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Dancing+Script:wght@600&family=Italiana&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Tokens (same as main site) ─────────────────────── */
+    :root {
+      --bg:            #FBF7FA;
+      --pink:          #F5D5E0;
+      --pink-deep:     #E5A4BC;
+      --rose:          #F8DCE3;
+      --mint:          #D6E8D6;
+      --lavender:      #E0D6EC;
+      --plum:          #5A4663;
+      --ink:           #2D2433;
+      --ink-soft:      #6A5E73;
+      --line:          rgba(45,36,51,0.12);
+      --red:           #c0392b;
+      --serif:  'Cormorant Garamond', Georgia, serif;
+      --label:  'Italiana', serif;
+      --script: 'Dancing Script', cursive;
+      --body:   'Inter', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--body); font-weight: 300; min-height: 100vh; }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    /* ── Shared form fields ──────────────────────────────── */
+    .field { margin-bottom: 18px; }
+    .field label {
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--plum);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 16px;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus { border-color: var(--pink-deep); }
+    .field textarea { min-height: 100px; resize: vertical; font-style: normal; font-size: 14px; }
+    .field input[type="number"],
+    .field input[type="url"],
+    .field input[type="email"],
+    .field input[type="password"],
+    .field input[type="text"]:not(.serif-input) { font-style: normal; }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+    }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--pink-deep); flex-shrink: 0; }
+    .checkbox-row label {
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--plum);
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .checkbox-row small { font-size: 11px; color: var(--ink-soft); display: block; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn {
+      background: var(--pink-deep);
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s, transform 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover  { background: var(--plum); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn.ghost  { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .btn.ghost:hover { background: var(--pink); border-color: var(--pink-deep); }
+    .btn.danger { background: transparent; color: var(--red); border: 1px solid rgba(192,57,43,0.25); }
+    .btn.danger:hover { background: var(--red); color: #fff; }
+    .btn.full   { width: 100%; justify-content: center; padding: 14px 20px; }
+    .btn.sm     { padding: 7px 16px; font-size: 9px; letter-spacing: 2px; }
+
+    /* ── Login screen ────────────────────────────────────── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, var(--bg) 0%, var(--rose) 100%);
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(45,36,51,0.10);
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .login-brand  { font-family: var(--script); font-size: 40px; font-weight: 600; color: var(--plum); text-align: center; display: block; margin-bottom: 4px; }
+    .login-sub    { font-family: var(--label); font-size: 10px; letter-spacing: 4px; color: var(--ink-soft); text-transform: uppercase; text-align: center; display: block; margin-bottom: 36px; }
+    .error-msg    { background: #fde8e8; border: 1px solid #f5c6c6; border-radius: 4px; padding: 10px 14px; font-size: 13px; color: var(--red); margin-bottom: 18px; display: none; }
+    .error-msg.show { display: block; }
+
+    /* ── Dashboard ───────────────────────────────────────── */
+    #dashboard { display: none; min-height: 100vh; }
+
+    .admin-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(251,247,250,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+    .admin-brand { font-family: var(--script); font-size: 26px; font-weight: 600; color: var(--ink); line-height: 1; }
+    .admin-brand span { font-family: var(--label); font-size: 9px; letter-spacing: 3px; color: var(--ink-soft); margin-left: 8px; vertical-align: middle; }
+
+    /* ── Tabs ────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      padding: 0 24px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 14px 18px;
+      margin-bottom: -1px;
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab-btn:hover { color: var(--plum); }
+    .tab-btn.active { color: var(--plum); border-bottom-color: var(--pink-deep); }
+
+    /* ── Main content area ───────────────────────────────── */
+    .admin-main { max-width: 860px; margin: 0 auto; padding: 32px 24px 80px; }
+    .tab-pane   { display: none; }
+    .tab-pane.active { display: block; }
+
+    .pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .pane-header h2 {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 28px;
+      color: var(--ink);
+    }
+
+    /* ── Product / workshop list ─────────────────────────── */
+    .item-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .list-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+    .item-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      background: var(--pink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--pink-deep);
+      overflow: hidden;
+      flex-shrink: 0;
+      font-family: var(--label);
+      letter-spacing: 1px;
+    }
+    .item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .item-thumb.mint { background: var(--mint); font-size: 22px; }
+
+    .item-info-name {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 20px;
+      color: var(--ink);
+      line-height: 1.1;
+      margin-bottom: 3px;
+    }
+    .item-info-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+    .item-info-tagline {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 400px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-family: var(--label);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .badge.on     { background: var(--mint);     color: var(--plum); }
+    .badge.off    { background: var(--pink);     color: var(--plum); }
+    .badge.star   { background: var(--lavender); color: var(--plum); }
+
+    .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* ── Empty / loading / error states ─────────────────── */
+    .state-box {
+      text-align: center;
+      padding: 64px 24px;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px dashed var(--line);
+    }
+    .state-box p {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 22px;
+      color: var(--ink-soft);
+      margin-bottom: 20px;
+    }
+    .state-loading {
+      text-align: center;
+      padding: 48px;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 20px;
+      color: var(--ink-soft);
+    }
+
+    /* ── Modal ───────────────────────────────────────────── */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(45,36,51,0.45);
+      z-index: 100;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .modal-bg.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 560px;
+      position: relative;
+      margin: auto;
+    }
+    @media (max-width: 600px) { .modal { padding: 28px 20px; } }
+
+    .modal h2 {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 26px;
+      color: var(--ink);
+      margin-bottom: 24px;
+    }
+    .modal-x {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: var(--ink-soft);
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+    }
+    .modal-x:hover { color: var(--ink); }
+
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    /* ── Image upload area ───────────────────────────────── */
+    .img-preview {
+      width: 100%;
+      aspect-ratio: 1;
+      max-height: 180px;
+      border-radius: 8px;
+      background: var(--pink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--pink-deep);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .upload-label {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 11px;
+      border: 1.5px dashed var(--pink-deep);
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--label);
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--plum);
+      text-transform: uppercase;
+      background: var(--bg);
+      transition: background 0.15s;
+      margin-bottom: 8px;
+    }
+    .upload-label:hover { background: var(--pink); }
+
+    .upload-or { text-align: center; font-size: 11px; color: var(--ink-soft); margin: 10px 0 8px; }
+    .upload-status { font-size: 12px; color: var(--ink-soft); font-style: italic; text-align: center; padding: 6px; min-height: 22px; }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      z-index: 200;
+      background: var(--ink);
+      color: #fff;
+      padding: 13px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.25s, transform 0.25s;
+    }
+    .toast.show  { opacity: 1; transform: translateY(0); }
+    .toast.ok    { background: #2d7a4f; }
+    .toast.err   { background: var(--red); }
+
+    /* ── Setup banner (shown when config.js is empty) ────── */
+    .setup-banner {
+      background: var(--lavender);
+      border: 1px solid var(--lavender-deep, #B7A4D1);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      font-size: 14px;
+      color: var(--plum);
+      line-height: 1.6;
+    }
+    .setup-banner strong { font-weight: 500; }
+    .setup-banner code {
+      background: rgba(90,70,99,0.12);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ LOGIN SCREEN ══════════════════════════════════════ -->
+  <div id="login-screen">
+    <div class="login-card">
+      <span class="login-brand">Famacrafts</span>
+      <span class="login-sub">Admin Dashboard</span>
+      <div class="error-msg" id="login-error"></div>
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="adm-email">Email</label>
+          <input type="email" id="adm-email" autocomplete="email" required placeholder="admin@famacrafts.com" />
+        </div>
+        <div class="field">
+          <label for="adm-pw">Password</label>
+          <input type="password" id="adm-pw" autocomplete="current-password" required placeholder="••••••••" />
+        </div>
+        <button type="submit" class="btn full" id="login-btn">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ DASHBOARD ══════════════════════════════════════════ -->
+  <div id="dashboard">
+
+    <header class="admin-header">
+      <div class="admin-brand">Famacrafts <span>Admin</span></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <a href="index.html" class="btn ghost sm" target="_blank">View Site ↗</a>
+        <button class="btn ghost sm" id="logout-btn">Sign Out</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="products">Products</button>
+      <button class="tab-btn"        data-tab="workshops">Workshops</button>
+    </div>
+
+    <main class="admin-main">
+
+      <!-- setup notice -->
+      <div class="setup-banner" id="setup-banner" style="display:none">
+        <strong>Supabase not connected.</strong> Open <code>config.js</code> and fill in your
+        <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> from
+        <strong>supabase.com → Settings → API</strong>. Refresh this page after saving.
+      </div>
+
+      <!-- Products tab -->
+      <div class="tab-pane active" id="tab-products">
+        <div class="pane-header">
+          <h2>Products</h2>
+          <button class="btn" id="new-product-btn">+ Add Product</button>
+        </div>
+        <div id="products-container"><div class="state-loading">Loading…</div></div>
+      </div>
+
+      <!-- Workshops tab -->
+      <div class="tab-pane" id="tab-workshops">
+        <div class="pane-header">
+          <h2>Workshops</h2>
+          <button class="btn" id="new-workshop-btn">+ Add Workshop</button>
+        </div>
+        <div id="workshops-container"><div class="state-loading">Loading…</div></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══ PRODUCT MODAL ══════════════════════════════════════ -->
+  <div class="modal-bg" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="pm-title">
+    <div class="modal">
+      <button class="modal-x" id="pm-close" aria-label="Close">✕</button>
+      <h2 id="pm-title">Add Product</h2>
+
+      <form id="product-form" novalidate>
+        <input type="hidden" id="pm-id" />
+
+        <!-- Image -->
+        <div class="field">
+          <label>Photo</label>
+          <div class="img-preview" id="pm-img-preview">No photo yet</div>
+          <label for="pm-file" class="upload-label">↑ Upload from device</label>
+          <input type="file" id="pm-file" accept="image/*" style="display:none" />
+          <div class="upload-status" id="pm-upload-status"></div>
+          <div class="upload-or">— or paste an image URL —</div>
+          <input type="url" id="pm-img-url" placeholder="https://res.cloudinary.com/…" />
+        </div>
+
+        <div class="field">
+          <label for="pm-name">Product Name *</label>
+          <input type="text" id="pm-name" required placeholder="e.g. Pressed Flower Card" class="serif-input" style="font-style:italic;" />
+        </div>
+
+        <div class="field">
+          <label for="pm-category">Category</label>
+          <input type="text" id="pm-category" placeholder="e.g. Cards" list="cat-list" />
+          <datalist id="cat-list">
+            <option value="Cards">
+            <option value="Baskets">
+            <option value="Bouquets">
+            <option value="Workshop Kits">
+            <option value="Custom">
+            <option value="Keepsakes">
+          </datalist>
+        </div>
+
+        <div class="field">
+          <label for="pm-tagline">
+            Tagline
+            <small style="font-size:9px;color:var(--ink-soft);letter-spacing:1px;text-transform:none"> — shown on the catalog card</small>
+          </label>
+          <input type="text" id="pm-tagline" placeholder="One-line description shown on the card" />
+        </div>
+
+        <div class="field">
+          <label for="pm-desc">
+            Caption / Description
+            <small style="font-size:9px;color:var(--ink-soft);letter-spacing:1px;text-transform:none"> — shown when customer taps "Read more"</small>
+          </label>
+          <textarea id="pm-desc" placeholder="Full product description. Tell the story — material, size, how to order customisation, etc."></textarea>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="pm-available" checked />
+          <label for="pm-available">
+            Visible on site
+            <small>Uncheck to hide without deleting</small>
+          </label>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="pm-featured" />
+          <label for="pm-featured">
+            Featured
+            <small>Pinned above other products</small>
+          </label>
+        </div>
+
+        <div class="field" style="margin-top:12px">
+          <label for="pm-order">
+            Display order
+            <small style="font-size:9px;color:var(--ink-soft);letter-spacing:1px;text-transform:none"> — lower number = shown first (default 0)</small>
+          </label>
+          <input type="number" id="pm-order" placeholder="0" min="0" style="max-width:120px;" />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn ghost" id="pm-cancel">Cancel</button>
+          <button type="submit" class="btn" id="pm-save">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ WORKSHOP MODAL ═════════════════════════════════════ -->
+  <div class="modal-bg" id="workshop-modal" role="dialog" aria-modal="true" aria-labelledby="wm-title">
+    <div class="modal">
+      <button class="modal-x" id="wm-close" aria-label="Close">✕</button>
+      <h2 id="wm-title">Add Workshop</h2>
+
+      <form id="workshop-form" novalidate>
+        <input type="hidden" id="wm-id" />
+
+        <div class="field">
+          <label for="wm-title-input">Workshop Title *</label>
+          <input type="text" id="wm-title-input" required placeholder="e.g. Bloom Together" style="font-style:italic;" />
+        </div>
+        <div class="field">
+          <label for="wm-date">Date</label>
+          <input type="text" id="wm-date" placeholder="e.g. Saturday, 14 June 2026" />
+        </div>
+        <div class="field">
+          <label for="wm-time">Time</label>
+          <input type="text" id="wm-time" placeholder="e.g. 3:00 — 5:30 PM" />
+        </div>
+        <div class="field">
+          <label for="wm-location">Location</label>
+          <input type="text" id="wm-location" placeholder="e.g. Krete Café · DHA Phase 6, Lahore" />
+        </div>
+        <div class="field">
+          <label for="wm-desc">Description</label>
+          <textarea id="wm-desc" placeholder="What happens in the workshop? What's included? Who is it for?"></textarea>
+        </div>
+        <div class="field">
+          <label for="wm-cta">Button Label</label>
+          <input type="text" id="wm-cta" placeholder="Reserve my seat" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="wm-active" checked />
+          <label for="wm-active">
+            Show on site
+            <small>Uncheck to hide without deleting</small>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn ghost" id="wm-cancel">Cancel</button>
+          <button type="submit" class="btn" id="wm-save">Save Workshop</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ TOAST ══════════════════════════════════════════════ -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ══ Scripts ════════════════════════════════════════════ -->
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    'use strict';
+
+    // ── Check Supabase config ─────────────────────────────
+    var configured = window.SUPABASE_URL && window.SUPABASE_URL !== ''
+                  && window.SUPABASE_ANON_KEY && window.SUPABASE_ANON_KEY !== '';
+
+    var sb = configured
+      ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+      : null;
+
+    // ── Escape HTML ───────────────────────────────────────
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function toSlug(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+
+    // ── Toast ─────────────────────────────────────────────
+    var toastEl = document.getElementById('toast');
+    var toastTimer;
+    function toast(msg, type) {
+      clearTimeout(toastTimer);
+      toastEl.textContent = msg;
+      toastEl.className   = 'toast show' + (type ? ' ' + type : '');
+      toastTimer = setTimeout(function () { toastEl.className = 'toast'; }, 3200);
+    }
+
+    // ── Auth ──────────────────────────────────────────────
+    async function boot() {
+      if (!configured) {
+        // Show dashboard with setup banner
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display    = 'block';
+        document.getElementById('setup-banner').style.display = 'block';
+        document.getElementById('products-container').innerHTML = '';
+        document.getElementById('workshops-container').innerHTML = '';
+        return;
+      }
+
+      var { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        showDash();
+      }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!configured) {
+        document.getElementById('login-error').textContent = 'config.js is not filled in yet — see setup instructions.';
+        document.getElementById('login-error').classList.add('show');
+        return;
+      }
+      var btn  = document.getElementById('login-btn');
+      var errEl = document.getElementById('login-error');
+      btn.textContent = 'Signing in…';
+      btn.disabled = true;
+      errEl.classList.remove('show');
+
+      var { error } = await sb.auth.signInWithPassword({
+        email:    document.getElementById('adm-email').value,
+        password: document.getElementById('adm-pw').value,
+      });
+
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+
+      if (error) {
+        errEl.textContent = error.message;
+        errEl.classList.add('show');
+      } else {
+        showDash();
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async function () {
+      if (sb) await sb.auth.signOut();
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('login-screen').style.display = '';
+    });
+
+    function showDash() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display    = 'block';
+      loadProducts();
+    }
+
+    // ── Tabs ──────────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'workshops') loadWorkshops();
+      });
+    });
+
+    // ════════════════════════════════════════════════════════
+    // PRODUCTS
+    // ════════════════════════════════════════════════════════
+    var products = [];
+
+    async function loadProducts() {
+      if (!sb) return;
+      document.getElementById('products-container').innerHTML = '<div class="state-loading">Loading…</div>';
+      var { data, error } = await sb.from('products').select('*')
+        .order('featured',      { ascending: false })
+        .order('display_order', { ascending: true  })
+        .order('created_at',    { ascending: false });
+      if (error) {
+        document.getElementById('products-container').innerHTML =
+          '<p style="color:var(--red);padding:20px">Error: ' + esc(error.message) + '</p>';
+        return;
+      }
+      products = data || [];
+      renderProducts();
+    }
+
+    function renderProducts() {
+      var el = document.getElementById('products-container');
+      if (!products.length) {
+        el.innerHTML = '<div class="state-box"><p>No products yet.</p>'
+          + '<button class="btn" onclick="openProductModal()">Add your first product</button></div>';
+        return;
+      }
+      var h = '<div class="item-list">';
+      products.forEach(function (p) {
+        h += '<div class="list-item" id="li-p-' + esc(p.id) + '">'
+          + '<div class="item-thumb">'
+          + (p.image_url
+              ? '<img src="' + esc(p.image_url) + '" alt="' + esc(p.name) + '" loading="lazy" onerror="this.style.display=\'none\'" />'
+              : 'No photo')
+          + '</div>'
+          + '<div>'
+            + '<div class="item-info-name">' + esc(p.name) + '</div>'
+            + '<div class="item-info-meta">'
+              + '<span>' + esc(p.category || 'Uncategorised') + '</span>'
+              + '<span class="badge ' + (p.available ? 'on' : 'off') + '">' + (p.available ? 'Visible' : 'Hidden') + '</span>'
+              + (p.featured ? '<span class="badge star">Featured</span>' : '')
+            + '</div>'
+            + (p.tagline ? '<div class="item-info-tagline">' + esc(p.tagline) + '</div>' : '')
+          + '</div>'
+          + '<div class="item-actions">'
+            + '<button class="btn ghost sm" onclick="openProductModal(\'' + esc(p.id) + '\')">Edit</button>'
+            + '<button class="btn danger sm" onclick="delProduct(\'' + esc(p.id) + '\',\'' + esc(p.name) + '\')">Delete</button>'
+          + '</div>'
+        + '</div>';
+      });
+      h += '</div>';
+      el.innerHTML = h;
+    }
+
+    // Open add/edit modal
+    function openProductModal(id) {
+      var form = document.getElementById('product-form');
+      form.reset();
+      document.getElementById('pm-img-preview').textContent = 'No photo yet';
+      document.getElementById('pm-upload-status').textContent = '';
+
+      if (id) {
+        var p = products.find(function (x) { return x.id === id; });
+        if (!p) return;
+        document.getElementById('pm-title').textContent = 'Edit Product';
+        document.getElementById('pm-id').value          = p.id;
+        document.getElementById('pm-name').value        = p.name        || '';
+        document.getElementById('pm-category').value    = p.category    || '';
+        document.getElementById('pm-tagline').value     = p.tagline     || '';
+        document.getElementById('pm-desc').value        = p.description || '';
+        document.getElementById('pm-img-url').value     = p.image_url   || '';
+        document.getElementById('pm-available').checked = p.available !== false;
+        document.getElementById('pm-featured').checked  = !!p.featured;
+        document.getElementById('pm-order').value       = p.display_order || 0;
+        if (p.image_url) {
+          document.getElementById('pm-img-preview').innerHTML =
+            '<img src="' + esc(p.image_url) + '" alt="" />';
+        }
+      } else {
+        document.getElementById('pm-title').textContent = 'Add Product';
+        document.getElementById('pm-id').value = '';
+        document.getElementById('pm-available').checked = true;
+      }
+      document.getElementById('product-modal').classList.add('open');
+      setTimeout(function () { document.getElementById('pm-name').focus(); }, 80);
+    }
+
+    function closeProductModal() { document.getElementById('product-modal').classList.remove('open'); }
+
+    document.getElementById('new-product-btn').addEventListener('click', function () { openProductModal(); });
+    document.getElementById('pm-close').addEventListener('click', closeProductModal);
+    document.getElementById('pm-cancel').addEventListener('click', closeProductModal);
+    document.getElementById('product-modal').addEventListener('click', function (e) {
+      if (e.target === e.currentTarget) closeProductModal();
+    });
+
+    // Image URL input → live preview
+    document.getElementById('pm-img-url').addEventListener('input', function () {
+      var val = this.value.trim();
+      var prev = document.getElementById('pm-img-preview');
+      if (val) {
+        prev.innerHTML = '<img src="' + esc(val) + '" alt="" onerror="this.parentNode.textContent=\'Cannot load image\'" />';
+      } else {
+        prev.textContent = 'No photo yet';
+      }
+    });
+
+    // File upload → Supabase Storage
+    document.getElementById('pm-file').addEventListener('change', async function () {
+      var file = this.files[0];
+      if (!file || !sb) return;
+      var status = document.getElementById('pm-upload-status');
+      status.textContent = 'Uploading…';
+      var ext  = file.name.split('.').pop().toLowerCase();
+      var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+      var { data, error } = await sb.storage.from('product-images').upload(path, file, {
+        contentType: file.type, upsert: false
+      });
+      if (error) {
+        status.textContent = 'Upload failed: ' + error.message;
+        toast('Upload failed', 'err');
+        return;
+      }
+      var { data: { publicUrl } } = sb.storage.from('product-images').getPublicUrl(data.path);
+      document.getElementById('pm-img-url').value = publicUrl;
+      document.getElementById('pm-img-preview').innerHTML = '<img src="' + esc(publicUrl) + '" alt="" />';
+      status.textContent = 'Uploaded ✓';
+      toast('Photo uploaded', 'ok');
+    });
+
+    // Save product
+    document.getElementById('product-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!sb) return;
+      var btn = document.getElementById('pm-save');
+      btn.textContent = 'Saving…';
+      btn.disabled = true;
+
+      var id   = document.getElementById('pm-id').value;
+      var name = document.getElementById('pm-name').value.trim();
+      if (!name) { toast('Product name is required', 'err'); btn.textContent = 'Save Product'; btn.disabled = false; return; }
+
+      var payload = {
+        name,
+        slug:          toSlug(name),
+        category:      document.getElementById('pm-category').value.trim(),
+        tagline:       document.getElementById('pm-tagline').value.trim(),
+        description:   document.getElementById('pm-desc').value.trim(),
+        image_url:     document.getElementById('pm-img-url').value.trim(),
+        available:     document.getElementById('pm-available').checked,
+        featured:      document.getElementById('pm-featured').checked,
+        display_order: parseInt(document.getElementById('pm-order').value) || 0,
+      };
+
+      var error = id
+        ? (await sb.from('products').update(payload).eq('id', id)).error
+        : (await sb.from('products').insert(payload)).error;
+
+      btn.textContent = 'Save Product';
+      btn.disabled = false;
+
+      if (error) {
+        toast('Error: ' + error.message, 'err');
+      } else {
+        toast(id ? 'Product updated ✓' : 'Product added ✓', 'ok');
+        closeProductModal();
+        await loadProducts();
+      }
+    });
+
+    async function delProduct(id, name) {
+      if (!confirm('Delete "' + name + '"?\n\nThis cannot be undone.')) return;
+      var { error } = await sb.from('products').delete().eq('id', id);
+      if (error) { toast('Error: ' + error.message, 'err'); return; }
+      toast('Deleted', 'ok');
+      await loadProducts();
+    }
+
+    // ════════════════════════════════════════════════════════
+    // WORKSHOPS
+    // ════════════════════════════════════════════════════════
+    var workshops = [];
+
+    async function loadWorkshops() {
+      if (!sb) return;
+      document.getElementById('workshops-container').innerHTML = '<div class="state-loading">Loading…</div>';
+      var { data, error } = await sb.from('workshops').select('*')
+        .order('display_order', { ascending: true  })
+        .order('created_at',    { ascending: false });
+      if (error) {
+        document.getElementById('workshops-container').innerHTML =
+          '<p style="color:var(--red);padding:20px">Error: ' + esc(error.message) + '</p>';
+        return;
+      }
+      workshops = data || [];
+      renderWorkshops();
+    }
+
+    function renderWorkshops() {
+      var el = document.getElementById('workshops-container');
+      if (!workshops.length) {
+        el.innerHTML = '<div class="state-box"><p>No workshops yet.</p>'
+          + '<button class="btn" onclick="openWorkshopModal()">Add your first workshop</button></div>';
+        return;
+      }
+      var h = '<div class="item-list">';
+      workshops.forEach(function (w) {
+        h += '<div class="list-item" id="li-w-' + esc(w.id) + '">'
+          + '<div class="item-thumb mint">🌱</div>'
+          + '<div>'
+            + '<div class="item-info-name">' + esc(w.title) + '</div>'
+            + '<div class="item-info-meta">'
+              + '<span>' + esc(w.date_label || 'No date') + '</span>'
+              + (w.time_label ? '<span>' + esc(w.time_label) + '</span>' : '')
+              + '<span class="badge ' + (w.active ? 'on' : 'off') + '">' + (w.active ? 'Active' : 'Hidden') + '</span>'
+            + '</div>'
+            + (w.location ? '<div class="item-info-tagline">📍 ' + esc(w.location) + '</div>' : '')
+          + '</div>'
+          + '<div class="item-actions">'
+            + '<button class="btn ghost sm" onclick="openWorkshopModal(\'' + esc(w.id) + '\')">Edit</button>'
+            + '<button class="btn danger sm" onclick="delWorkshop(\'' + esc(w.id) + '\',\'' + esc(w.title) + '\')">Delete</button>'
+          + '</div>'
+        + '</div>';
+      });
+      h += '</div>';
+      el.innerHTML = h;
+    }
+
+    function openWorkshopModal(id) {
+      document.getElementById('workshop-form').reset();
+      if (id) {
+        var w = workshops.find(function (x) { return x.id === id; });
+        if (!w) return;
+        document.getElementById('wm-title').textContent         = 'Edit Workshop';
+        document.getElementById('wm-id').value                  = w.id;
+        document.getElementById('wm-title-input').value         = w.title       || '';
+        document.getElementById('wm-date').value                = w.date_label  || '';
+        document.getElementById('wm-time').value                = w.time_label  || '';
+        document.getElementById('wm-location').value            = w.location    || '';
+        document.getElementById('wm-desc').value                = w.description || '';
+        document.getElementById('wm-cta').value                 = w.cta_label   || '';
+        document.getElementById('wm-active').checked            = w.active !== false;
+      } else {
+        document.getElementById('wm-title').textContent = 'Add Workshop';
+        document.getElementById('wm-id').value = '';
+        document.getElementById('wm-active').checked = true;
+      }
+      document.getElementById('workshop-modal').classList.add('open');
+      setTimeout(function () { document.getElementById('wm-title-input').focus(); }, 80);
+    }
+
+    function closeWorkshopModal() { document.getElementById('workshop-modal').classList.remove('open'); }
+
+    document.getElementById('new-workshop-btn').addEventListener('click', function () { openWorkshopModal(); });
+    document.getElementById('wm-close').addEventListener('click', closeWorkshopModal);
+    document.getElementById('wm-cancel').addEventListener('click', closeWorkshopModal);
+    document.getElementById('workshop-modal').addEventListener('click', function (e) {
+      if (e.target === e.currentTarget) closeWorkshopModal();
+    });
+
+    document.getElementById('workshop-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!sb) return;
+      var btn = document.getElementById('wm-save');
+      btn.textContent = 'Saving…';
+      btn.disabled = true;
+
+      var id = document.getElementById('wm-id').value;
+      var payload = {
+        title:       document.getElementById('wm-title-input').value.trim(),
+        date_label:  document.getElementById('wm-date').value.trim(),
+        time_label:  document.getElementById('wm-time').value.trim(),
+        location:    document.getElementById('wm-location').value.trim(),
+        description: document.getElementById('wm-desc').value.trim(),
+        cta_label:   document.getElementById('wm-cta').value.trim() || 'Reserve my seat',
+        active:      document.getElementById('wm-active').checked,
+      };
+
+      var error = id
+        ? (await sb.from('workshops').update(payload).eq('id', id)).error
+        : (await sb.from('workshops').insert(payload)).error;
+
+      btn.textContent = 'Save Workshop';
+      btn.disabled = false;
+
+      if (error) {
+        toast('Error: ' + error.message, 'err');
+      } else {
+        toast(id ? 'Workshop updated ✓' : 'Workshop added ✓', 'ok');
+        closeWorkshopModal();
+        await loadWorkshops();
+      }
+    });
+
+    async function delWorkshop(id, title) {
+      if (!confirm('Delete "' + title + '"?\n\nThis cannot be undone.')) return;
+      var { error } = await sb.from('workshops').delete().eq('id', id);
+      if (error) { toast('Error: ' + error.message, 'err'); return; }
+      toast('Deleted', 'ok');
+      await loadWorkshops();
+    }
+
+    // ── Keyboard close for modals ─────────────────────────
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (document.getElementById('product-modal').classList.contains('open'))  closeProductModal();
+      if (document.getElementById('workshop-modal').classList.contains('open')) closeWorkshopModal();
+    });
+
+    // ── Boot ──────────────────────────────────────────────
+    boot();
+  </script>
+</body>
+</html>
