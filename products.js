@@ -24,7 +24,7 @@ window.FAMACRAFTS = {
   instagram:    "@famacrafts",
   instagramUrl: "https://instagram.com/famacrafts",
   email:        "hello@famacrafts.com",
-  location:     "Krete · DHA Phase 6, Lahore",
+  location:     "Lahore, Pakistan",
 
   // Message sent when a customer taps "Order on WhatsApp"
   // {PRODUCT} is replaced with the product name at runtime
@@ -93,7 +93,7 @@ window.FAMACRAFTS = {
       title:       "Bloom Together",
       date:        "Saturday, 14 June 2026",
       time:        "3:00 — 5:30 PM",
-      location:    "Krete Café · DHA Phase 6, Lahore",
+      location:    "Lahore, Pakistan",
       description: "A slow, guided two-hour workshop where you'll arrange your own dried floral centrepiece to take home. Tea, good company, and all materials included. Limited to 12 seats.",
       cta:         "Reserve my seat"
     }

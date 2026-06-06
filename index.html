@@ -702,6 +702,20 @@
       color: rgba(255,255,255,0.35);
       letter-spacing: 1px;
     }
+    .footer-credit {
+      margin-top: 10px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.4);
+    }
+    .footer-credit a {
+      color: rgba(255,255,255,0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.25);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    @media (hover: hover) {
+      .footer-credit a:hover { color: var(--pink-deep); border-color: var(--pink-deep); }
+    }
 
     /* ── WhatsApp FAB ────────────────────────────────────────── */
     .fab {
@@ -937,6 +951,7 @@
         <a id="footer-loc" href="#">Lahore, Pakistan</a>
       </nav>
       <p class="footer-copy">© <span id="copy-year"></span> Famacrafts. All rights reserved.</p>
+      <p class="footer-credit">Developed by <a href="https://velocis.io" target="_blank" rel="noopener">Velocis</a></p>
     </div>
   </footer>
 
