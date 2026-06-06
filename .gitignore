@@ -1,7 +1,9 @@
 # Credentials — never commit these
 .env
 .env.local
-config.js
+
+# config.js holds only the public Supabase URL + anon key (safe to expose —
+# RLS protects all data). It is committed so Cloudflare can serve it.
 
 # macOS
 .DS_Store

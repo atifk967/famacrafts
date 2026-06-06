@@ -876,165 +876,165 @@
   <!-- ── App script ─────────────────────────────────────────── -->
   <script>
     (function () {
-      ‘use strict’;
+      'use strict';
 
       var D = window.FAMACRAFTS;
-      if (!D) { console.error(‘products.js not loaded’); return; }
+      if (!D) { console.error('products.js not loaded'); return; }
 
       // ── Helpers ───────────────────────────────────────────
       function waUrl(productName) {
-        var msg = D.whatsappTemplate.replace(‘{PRODUCT}’, productName);
-        return ‘https://wa.me/’ + D.whatsapp + ‘?text=’ + encodeURIComponent(msg);
+        var msg = D.whatsappTemplate.replace('{PRODUCT}', productName);
+        return 'https://wa.me/' + D.whatsapp + '?text=' + encodeURIComponent(msg);
       }
 
       function esc(str) {
-        return String(str || ‘’)
-          .replace(/&/g, ‘&amp;’)
-          .replace(/</g, ‘&lt;’)
-          .replace(/>/g, ‘&gt;’)
-          .replace(/"/g, ‘&quot;’);
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
       }
 
       // Inject Cloudinary optimisation params if URL is a Cloudinary link
       function imgSrc(raw, w) {
-        if (!raw) return ‘’;
-        if (raw.includes(‘res.cloudinary.com’) && raw.includes(‘/upload/’)) {
-          return raw.replace(‘/upload/’, ‘/upload/w_’ + w + ‘,q_80,f_auto/’);
+        if (!raw) return '';
+        if (raw.includes('res.cloudinary.com') && raw.includes('/upload/')) {
+          return raw.replace('/upload/', '/upload/w_' + w + ',q_80,f_auto/');
         }
         return raw;
       }
 
       // ── Render products ───────────────────────────────────
       function renderProducts(products) {
-        var catalogGrid = document.getElementById(‘catalog-grid’);
+        var catalogGrid = document.getElementById('catalog-grid');
         if (!products || products.length === 0) {
-          catalogGrid.innerHTML = ‘<p class="empty-state">Products coming soon — check back shortly.</p>’;
+          catalogGrid.innerHTML = '<p class="empty-state">Products coming soon — check back shortly.</p>';
           return;
         }
-        var html = ‘’;
+        var html = '';
         products.forEach(function (p, i) {
           // Normalise field names (Supabase uses image_url; products.js uses image)
-          var imgRaw  = p.image_url || p.image || ‘’;
+          var imgRaw  = p.image_url || p.image || '';
           var src800  = imgSrc(imgRaw, 800);
           var isFirst = i === 0;
-          var pid     = p.id || (‘p’ + i);
+          var pid     = p.id || ('p' + i);
 
-          html += ‘<article class="product" id="product-’ + esc(pid) + ‘">’;
+          html += '<article class="product" id="product-' + esc(pid) + '">';
 
-          html += ‘<div class="product-img-wrap">’;
+          html += '<div class="product-img-wrap">';
           if (imgRaw) {
-            html += ‘<img’
-              + ‘ src="’ + esc(src800) + ‘"’
-              + ‘ alt="’ + esc(p.name) + ‘"’
-              + (isFirst ? ‘ loading="eager"’ : ‘ loading="lazy"’)
-              + ‘ onerror="this.parentNode.innerHTML=\’<div class=\\\"product-img-placeholder\\\">image<br>coming soon</div>\’"’
-              + ‘ />’;
+            html += '<img'
+              + ' src="' + esc(src800) + '"'
+              + ' alt="' + esc(p.name) + '"'
+              + (isFirst ? ' loading="eager"' : ' loading="lazy"')
+              + ' onerror="this.parentNode.innerHTML=\'<div class=\\\"product-img-placeholder\\\">image<br>coming soon</div>\'"'
+              + ' />';
           } else {
-            html += ‘<div class="product-img-placeholder">image<br>coming soon</div>’;
+            html += '<div class="product-img-placeholder">image<br>coming soon</div>';
           }
-          html += ‘</div>’;
+          html += '</div>';
 
-          html += ‘<div class="product-body">’;
-          html += ‘<p class="product-category">’ + esc(p.category) + ‘</p>’;
-          html += ‘<h3 class="product-name">’ + esc(p.name) + ‘</h3>’;
-          html += ‘<p class="product-tagline">’ + esc(p.tagline) + ‘</p>’;
+          html += '<div class="product-body">';
+          html += '<p class="product-category">' + esc(p.category) + '</p>';
+          html += '<h3 class="product-name">' + esc(p.name) + '</h3>';
+          html += '<p class="product-tagline">' + esc(p.tagline) + '</p>';
           if (p.description) {
-            html += ‘<p class="product-desc">’ + esc(p.description) + ‘</p>’;
+            html += '<p class="product-desc">' + esc(p.description) + '</p>';
           }
-          html += ‘<div class="product-actions">’;
-          html += ‘<a class="btn" href="’ + esc(waUrl(p.name)) + ‘" target="_blank" rel="noopener">’;
-          html += ‘<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/></svg>’;
-          html += ‘Order on WhatsApp</a>’;
+          html += '<div class="product-actions">';
+          html += '<a class="btn" href="' + esc(waUrl(p.name)) + '" target="_blank" rel="noopener">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/></svg>';
+          html += 'Order on WhatsApp</a>';
           if (p.description) {
-            html += ‘<button class="btn ghost read-more-btn" type="button" data-target="product-’ + esc(pid) + ‘">Read more</button>’;
+            html += '<button class="btn ghost read-more-btn" type="button" data-target="product-' + esc(pid) + '">Read more</button>';
           }
-          html += ‘</div>’;
-          html += ‘</div>’;
-          html += ‘</article>’;
+          html += '</div>';
+          html += '</div>';
+          html += '</article>';
         });
         catalogGrid.innerHTML = html;
       }
 
       // ── Render workshops ──────────────────────────────────
       function renderWorkshops(workshops) {
-        var workshopsGrid = document.getElementById(‘workshops-grid’);
+        var workshopsGrid = document.getElementById('workshops-grid');
         if (!workshops || workshops.length === 0) {
-          workshopsGrid.innerHTML = ‘<p class="empty-state">No upcoming workshops — follow us on Instagram for announcements.</p>’;
+          workshopsGrid.innerHTML = '<p class="empty-state">No upcoming workshops — follow us on Instagram for announcements.</p>';
           return;
         }
-        var whtml = ‘’;
+        var whtml = '';
         workshops.forEach(function (w) {
           // Normalise field names (Supabase: date_label/time_label; products.js: date/time)
-          var dateLabel = w.date_label || w.date || ‘’;
-          var timeLabel = w.time_label || w.time || ‘’;
-          whtml += ‘<article class="workshop-card">’;
-          whtml += ‘<p class="workshop-date">’ + esc(dateLabel) + ‘</p>’;
-          whtml += ‘<h3 class="workshop-title">’ + esc(w.title) + ‘</h3>’;
-          whtml += ‘<p class="workshop-desc">’ + esc(w.description) + ‘</p>’;
-          whtml += ‘<div class="workshop-meta">’;
+          var dateLabel = w.date_label || w.date || '';
+          var timeLabel = w.time_label || w.time || '';
+          whtml += '<article class="workshop-card">';
+          whtml += '<p class="workshop-date">' + esc(dateLabel) + '</p>';
+          whtml += '<h3 class="workshop-title">' + esc(w.title) + '</h3>';
+          whtml += '<p class="workshop-desc">' + esc(w.description) + '</p>';
+          whtml += '<div class="workshop-meta">';
           if (timeLabel) {
-            whtml += ‘<div class="workshop-meta-item">’;
-            whtml += ‘<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>’;
-            whtml += ‘<span>’ + esc(timeLabel) + ‘</span></div>’;
+            whtml += '<div class="workshop-meta-item">';
+            whtml += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+            whtml += '<span>' + esc(timeLabel) + '</span></div>';
           }
           if (w.location) {
-            whtml += ‘<div class="workshop-meta-item">’;
-            whtml += ‘<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>’;
-            whtml += ‘<span>’ + esc(w.location) + ‘</span></div>’;
+            whtml += '<div class="workshop-meta-item">';
+            whtml += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+            whtml += '<span>' + esc(w.location) + '</span></div>';
           }
-          whtml += ‘</div>’;
-          whtml += ‘<a class="btn" href="’ + esc(waUrl(w.title)) + ‘" target="_blank" rel="noopener">’ + esc(w.cta_label || w.cta || ‘Reserve my seat’) + ‘</a>’;
-          whtml += ‘</article>’;
+          whtml += '</div>';
+          whtml += '<a class="btn" href="' + esc(waUrl(w.title)) + '" target="_blank" rel="noopener">' + esc(w.cta_label || w.cta || 'Reserve my seat') + '</a>';
+          whtml += '</article>';
         });
         workshopsGrid.innerHTML = whtml;
       }
 
       // ── Wire static parts (footer, FAB, nav) ──────────────
       function wireStatic() {
-        document.getElementById(‘copy-year’).textContent = new Date().getFullYear();
-        var footerIg  = document.getElementById(‘footer-ig’);
-        var footerWa  = document.getElementById(‘footer-wa’);
-        var footerLoc = document.getElementById(‘footer-loc’);
-        var fabBtn    = document.getElementById(‘fabBtn’);
+        document.getElementById('copy-year').textContent = new Date().getFullYear();
+        var footerIg  = document.getElementById('footer-ig');
+        var footerWa  = document.getElementById('footer-wa');
+        var footerLoc = document.getElementById('footer-loc');
+        var fabBtn    = document.getElementById('fabBtn');
         if (D.instagramUrl) footerIg.href = D.instagramUrl;
-        footerWa.href = ‘https://wa.me/’ + D.whatsapp;
-        footerLoc.textContent = D.location || ‘Lahore, Pakistan’;
-        fabBtn.href = ‘https://wa.me/’ + D.whatsapp;
+        footerWa.href = 'https://wa.me/' + D.whatsapp;
+        footerLoc.textContent = D.location || 'Lahore, Pakistan';
+        fabBtn.href = 'https://wa.me/' + D.whatsapp;
 
-        var overlay  = document.getElementById(‘navOverlay’);
-        var openBtn  = document.getElementById(‘menuOpenBtn’);
-        var closeBtn = document.getElementById(‘menuCloseBtn’);
-        function openMenu()  { overlay.classList.add(‘open’);    document.body.style.overflow = ‘hidden’; closeBtn.focus(); }
-        function closeMenu() { overlay.classList.remove(‘open’); document.body.style.overflow = ‘’;       openBtn.focus();  }
-        openBtn.addEventListener(‘click’, openMenu);
-        closeBtn.addEventListener(‘click’, closeMenu);
-        document.querySelectorAll(‘.nav-link’).forEach(function (l) { l.addEventListener(‘click’, closeMenu); });
-        document.addEventListener(‘keydown’, function (e) { if (e.key === ‘Escape’ && overlay.classList.contains(‘open’)) closeMenu(); });
+        var overlay  = document.getElementById('navOverlay');
+        var openBtn  = document.getElementById('menuOpenBtn');
+        var closeBtn = document.getElementById('menuCloseBtn');
+        function openMenu()  { overlay.classList.add('open');    document.body.style.overflow = 'hidden'; closeBtn.focus(); }
+        function closeMenu() { overlay.classList.remove('open'); document.body.style.overflow = '';       openBtn.focus();  }
+        openBtn.addEventListener('click', openMenu);
+        closeBtn.addEventListener('click', closeMenu);
+        document.querySelectorAll('.nav-link').forEach(function (l) { l.addEventListener('click', closeMenu); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) closeMenu(); });
 
-        document.getElementById(‘catalog-grid’).addEventListener(‘click’, function (e) {
-          var btn = e.target.closest(‘.read-more-btn’);
+        document.getElementById('catalog-grid').addEventListener('click', function (e) {
+          var btn = e.target.closest('.read-more-btn');
           if (!btn) return;
           var card = document.getElementById(btn.dataset.target);
           if (!card) return;
-          btn.textContent = card.classList.toggle(‘expanded’) ? ‘Less’ : ‘Read more’;
+          btn.textContent = card.classList.toggle('expanded') ? 'Less' : 'Read more';
         });
 
-        document.getElementById(‘customForm’).addEventListener(‘submit’, function (e) {
+        document.getElementById('customForm').addEventListener('submit', function (e) {
           e.preventDefault();
-          var name     = document.getElementById(‘cf-name’).value.trim();
-          var occasion = document.getElementById(‘cf-occasion’).value;
-          var qty      = document.getElementById(‘cf-qty’).value.trim();
-          var notes    = document.getElementById(‘cf-notes’).value.trim();
-          if (!name || !occasion) { alert(‘Please enter your name and select an occasion.’); return; }
+          var name     = document.getElementById('cf-name').value.trim();
+          var occasion = document.getElementById('cf-occasion').value;
+          var qty      = document.getElementById('cf-qty').value.trim();
+          var notes    = document.getElementById('cf-notes').value.trim();
+          if (!name || !occasion) { alert('Please enter your name and select an occasion.'); return; }
           var lines = [
-            ‘Hi Famacrafts! I’d like to discuss a custom order.’,
-            ‘’,
-            ‘Name: ‘     + name,
-            ‘Occasion: ‘ + occasion,
-            ‘Quantity: ‘ + (qty   || ‘TBD’),
-            ‘Details: ‘  + (notes || ‘Will share more on chat.’),
+            'Hi Famacrafts! I\'d like to discuss a custom order.',
+            '',
+            'Name: '     + name,
+            'Occasion: ' + occasion,
+            'Quantity: ' + (qty   || 'TBD'),
+            'Details: '  + (notes || 'Will share more on chat.'),
           ];
-          window.open(‘https://wa.me/’ + D.whatsapp + ‘?text=’ + encodeURIComponent(lines.join(‘\n’)), ‘_blank’, ‘noopener’);
+          window.open('https://wa.me/' + D.whatsapp + '?text=' + encodeURIComponent(lines.join('\n')), '_blank', 'noopener');
         });
       }
 
@@ -1043,32 +1043,32 @@
         wireStatic();
 
         var useSupabase = window.SUPABASE_URL && window.SUPABASE_ANON_KEY
-          && window.SUPABASE_URL !== ‘’ && window.SUPABASE_ANON_KEY !== ‘’;
+          && window.SUPABASE_URL !== '' && window.SUPABASE_ANON_KEY !== '';
 
         if (useSupabase && window.supabase) {
           // Show loading state
-          document.getElementById(‘catalog-grid’).innerHTML =
-            ‘<p style="text-align:center;font-family:var(--serif);font-style:italic;font-size:20px;color:var(--ink-soft);padding:48px">Loading…</p>’;
-          document.getElementById(‘workshops-grid’).innerHTML =
-            ‘<p style="text-align:center;font-family:var(--serif);font-style:italic;font-size:18px;color:var(--ink-soft);padding:32px">Loading…</p>’;
+          document.getElementById('catalog-grid').innerHTML =
+            '<p style="text-align:center;font-family:var(--serif);font-style:italic;font-size:20px;color:var(--ink-soft);padding:48px">Loading…</p>';
+          document.getElementById('workshops-grid').innerHTML =
+            '<p style="text-align:center;font-family:var(--serif);font-style:italic;font-size:18px;color:var(--ink-soft);padding:32px">Loading…</p>';
 
           try {
             var sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
             var results = await Promise.all([
-              sb.from(‘products’).select(‘*’)
-                .eq(‘available’, true)
-                .order(‘featured’,      { ascending: false })
-                .order(‘display_order’, { ascending: true  })
-                .order(‘created_at’,    { ascending: false }),
-              sb.from(‘workshops’).select(‘*’)
-                .eq(‘active’, true)
-                .order(‘display_order’, { ascending: true  })
-                .order(‘created_at’,    { ascending: false }),
+              sb.from('products').select('*')
+                .eq('available', true)
+                .order('featured',      { ascending: false })
+                .order('display_order', { ascending: true  })
+                .order('created_at',    { ascending: false }),
+              sb.from('workshops').select('*')
+                .eq('active', true)
+                .order('display_order', { ascending: true  })
+                .order('created_at',    { ascending: false }),
             ]);
             renderProducts(results[0].data  || []);
             renderWorkshops(results[1].data || []);
           } catch (err) {
-            console.warn(‘Supabase fetch failed, falling back to products.js’, err);
+            console.warn('Supabase fetch failed, falling back to products.js', err);
             renderProducts(D.products   || []);
             renderWorkshops(D.workshops || []);
           }
