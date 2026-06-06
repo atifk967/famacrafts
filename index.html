@@ -365,22 +365,24 @@
       box-shadow: 0 4px 18px rgba(45,36,51,0.06);
       padding: 16px;
       display: grid;
-      grid-template-columns: 48% 1fr;
+      grid-template-columns: 52% 1fr;
       gap: 16px;
       align-items: center;
       transition: box-shadow 0.2s, transform 0.2s;
     }
     @media (min-width: 720px) {
-      .product { padding: 32px; gap: 36px; grid-template-columns: 40% 1fr; }
+      .product { padding: 32px; gap: 36px; grid-template-columns: 46% 1fr; }
     }
     @media (min-width: 1024px) {
-      .product { padding: 36px; gap: 48px; grid-template-columns: 36% 1fr; }
+      .product { padding: 36px; gap: 48px; grid-template-columns: 42% 1fr; }
     }
     @media (hover: hover) {
       .product:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(45,36,51,0.11); }
     }
     .product-img-wrap {
-      aspect-ratio: 1 / 1;
+      /* portrait frame matches iPhone vertical photos (3:4) — fills with no
+         letterbox bars and no cropping */
+      aspect-ratio: 3 / 4;
       border-radius: 4px;
       overflow: hidden;
       background: var(--pink);
