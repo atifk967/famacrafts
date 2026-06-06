@@ -21,8 +21,8 @@ window.FAMACRAFTS = {
 
   // ── Business config ──────────────────────────────────────────────────────
   whatsapp:     "923095569017",       // digits only — no + or spaces
-  instagram:    "@famacrafts",
-  instagramUrl: "https://instagram.com/famacrafts",
+  instagram:    "@famacrafts_",
+  instagramUrl: "https://instagram.com/famacrafts_",
   email:        "hello@famacrafts.com",
   location:     "Lahore, Pakistan",
 
