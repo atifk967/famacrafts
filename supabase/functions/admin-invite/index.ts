@@ -29,7 +29,9 @@ function corsHeaders(origin: string): Record<string, string> {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : SITE_URL;
   return {
     "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Headers": "authorization, content-type",
+    // supabase-js sends apikey + x-client-info (+ api-version) — all must be allowed
+    // or the browser's CORS preflight blocks the request before it's sent.
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };
