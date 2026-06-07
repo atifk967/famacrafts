@@ -528,6 +528,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="products">Products</button>
       <button class="tab-btn"        data-tab="workshops">Workshops</button>
+      <button class="tab-btn"        data-tab="team" id="team-tab-btn" style="display:none">Team</button>
     </div>
 
     <main class="admin-main">
@@ -555,6 +556,27 @@
           <button class="btn" id="new-workshop-btn">+ Add Workshop</button>
         </div>
         <div id="workshops-container"><div class="state-loading">Loading…</div></div>
+      </div>
+
+      <!-- Team tab (owner only) -->
+      <div class="tab-pane" id="tab-team">
+        <div class="pane-header">
+          <h2>Team &amp; Access</h2>
+        </div>
+        <div class="setup-banner" style="display:block;background:var(--mint);border-color:#bcd9bc">
+          <strong>Master control — owner only.</strong> No one can sign up on their own;
+          an invitation is the only way in. Every admin must set up two-factor
+          authentication on first sign-in, and only you can add or remove admins.
+        </div>
+        <form id="invite-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px">
+          <div class="field" style="flex:1;min-width:220px;margin-bottom:0">
+            <label for="invite-email">Invite a new admin</label>
+            <input type="email" id="invite-email" autocomplete="off" placeholder="their@email.com" required />
+          </div>
+          <button type="submit" class="btn" id="invite-btn">Send invite</button>
+        </form>
+        <div id="invite-result"></div>
+        <div id="team-container"><div class="state-loading">Loading…</div></div>
       </div>
 
     </main>
@@ -735,6 +757,29 @@
       toastTimer = setTimeout(function () { toastEl.className = 'toast'; }, 3200);
     }
 
+    // Turn a silent RLS denial into a clear, actionable message. Writes now
+    // require a two-factor (AAL2) session; an out-of-date session is the usual
+    // cause of a row-level-security rejection.
+    function writeErr(error) {
+      var m = (error && error.message) || 'Something went wrong';
+      if (/row-level security/i.test(m)) {
+        return 'Your two-factor session has expired — please Sign Out and sign in again to continue.';
+      }
+      return m;
+    }
+
+    // Proactively ensure the session finished two-factor before a write. The
+    // login gate already enforces this on entry; this guards a long-open tab.
+    async function ensureAal2() {
+      try {
+        var a = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (a.data && a.data.currentLevel === 'aal2') return true;
+      } catch (e) { return true; }   // never block on a transient check failure
+      toast('Two-factor needed — please verify to continue', 'err');
+      gateAfterAuth();               // routes to the TOTP challenge screen
+      return false;
+    }
+
     // ── Auth ──────────────────────────────────────────────
     async function boot() {
       if (!configured) {
@@ -794,6 +839,7 @@
       document.getElementById('mfa-screen').style.display   = 'none';
       document.getElementById('dashboard').style.display    = 'block';
       loadProducts();
+      detectOwner();
     }
 
     // ── MFA (TOTP two-factor) ─────────────────────────────
@@ -881,6 +927,7 @@
         btn.classList.add('active');
         document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
         if (btn.dataset.tab === 'workshops') loadWorkshops();
+        if (btn.dataset.tab === 'team')      loadTeam();
       });
     });
 
@@ -1142,6 +1189,7 @@
     document.getElementById('product-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       if (!sb) return;
+      if (!(await ensureAal2())) return;
       var btn = document.getElementById('pm-save');
       btn.textContent = 'Saving…';
       btn.disabled = true;
@@ -1181,7 +1229,7 @@
       btn.disabled = false;
 
       if (error) {
-        toast('Error: ' + error.message, 'err');
+        toast(writeErr(error), 'err');
       } else {
         // free storage for images removed from this product during the edit
         if (id) {
@@ -1200,7 +1248,7 @@
       var p = products.find(function (x) { return x.id === id; });
       var imgs = p ? ((Array.isArray(p.images) && p.images.length) ? p.images : (p.image_url ? [p.image_url] : [])) : [];
       var { error } = await sb.from('products').delete().eq('id', id);
-      if (error) { toast('Error: ' + error.message, 'err'); return; }
+      if (error) { toast(writeErr(error), 'err'); return; }
       await removeStorageObjects(imgs);   // free the deleted product's photos from storage
       toast('Deleted', 'ok');
       await loadProducts();
@@ -1291,6 +1339,7 @@
     document.getElementById('workshop-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       if (!sb) return;
+      if (!(await ensureAal2())) return;
       var btn = document.getElementById('wm-save');
       btn.textContent = 'Saving…';
       btn.disabled = true;
@@ -1314,7 +1363,7 @@
       btn.disabled = false;
 
       if (error) {
-        toast('Error: ' + error.message, 'err');
+        toast(writeErr(error), 'err');
       } else {
         toast(id ? 'Workshop updated ✓' : 'Workshop added ✓', 'ok');
         closeWorkshopModal();
@@ -1325,10 +1374,133 @@
     async function delWorkshop(id, title) {
       if (!confirm('Delete "' + title + '"?\n\nThis cannot be undone.')) return;
       var { error } = await sb.from('workshops').delete().eq('id', id);
-      if (error) { toast('Error: ' + error.message, 'err'); return; }
+      if (error) { toast(writeErr(error), 'err'); return; }
       toast('Deleted', 'ok');
       await loadWorkshops();
     }
+
+    // ════════════════════════════════════════════════════════
+    // TEAM & ACCESS  (owner only)
+    // ════════════════════════════════════════════════════════
+    // Real enforcement lives in Postgres RLS + the admin-invite edge function.
+    // This UI only decides whether to SHOW the owner-only Team tab and offers a
+    // convenient front-end; a non-owner who forces it open still can't write.
+    var myEmail = null, myRole = null, admins = [];
+
+    async function detectOwner() {
+      myEmail = null; myRole = null;
+      try {
+        var u = await sb.auth.getUser();
+        myEmail = ((u.data && u.data.user && u.data.user.email) || '').toLowerCase();
+        if (!myEmail) return;
+        var r = await sb.from('app_admins').select('role,status').eq('email', myEmail).maybeSingle();
+        myRole = (r.data && r.data.status === 'approved') ? r.data.role : null;
+      } catch (e) { /* table may not exist yet — stay hidden */ }
+      document.getElementById('team-tab-btn').style.display = (myRole === 'owner') ? '' : 'none';
+    }
+
+    async function loadTeam() {
+      var el = document.getElementById('team-container');
+      el.innerHTML = '<div class="state-loading">Loading…</div>';
+      var r = await sb.from('app_admins').select('*').order('created_at', { ascending: true });
+      if (r.error) { el.innerHTML = '<p style="color:var(--red);padding:20px">Error: ' + esc(r.error.message) + '</p>'; return; }
+      admins = r.data || [];
+      renderTeam();
+    }
+
+    function renderTeam() {
+      var el = document.getElementById('team-container');
+      if (!admins.length) { el.innerHTML = '<div class="state-box"><p>No admins yet.</p></div>'; return; }
+      var h = '<div class="item-list">';
+      admins.forEach(function (a) {
+        var isOwnerRow = a.role === 'owner';
+        var statusCls  = a.status === 'approved' ? 'on' : (a.status === 'revoked' ? 'off' : 'star');
+        h += '<div class="list-item">'
+          + '<div class="item-thumb mint">' + (isOwnerRow ? '★' : '☺') + '</div>'
+          + '<div>'
+            + '<div class="item-info-name" style="font-size:17px">' + esc(a.email) + '</div>'
+            + '<div class="item-info-meta">'
+              + '<span class="badge ' + (isOwnerRow ? 'star' : 'on') + '">' + esc(a.role) + '</span>'
+              + '<span class="badge ' + statusCls + '">' + esc(a.status) + '</span>'
+              + (a.invited_by ? '<span style="font-size:11px">invited by ' + esc(a.invited_by) + '</span>' : '')
+            + '</div>'
+          + '</div>'
+          + '<div class="item-actions">'
+            + (isOwnerRow
+                ? '<span style="font-size:10px;letter-spacing:2px;color:var(--ink-soft);text-transform:uppercase">Master</span>'
+                : (a.status === 'approved'
+                    ? '<button class="btn danger sm" data-revoke="' + esc(a.email) + '">Revoke</button>'
+                    : '<button class="btn ghost sm" data-reapprove="' + esc(a.email) + '">Re-approve</button>'))
+          + '</div>'
+        + '</div>';
+      });
+      h += '</div>';
+      el.innerHTML = h;
+    }
+
+    function waInvite(email, link) {
+      var msg = "You've been invited as an admin for Famacrafts. "
+              + 'Open this one-time link to set your password and sign in:\n' + link;
+      return 'https://wa.me/?text=' + encodeURIComponent(msg);
+    }
+
+    document.getElementById('invite-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!sb) return;
+      var email = document.getElementById('invite-email').value.trim().toLowerCase();
+      var btn   = document.getElementById('invite-btn');
+      var resEl = document.getElementById('invite-result');
+      resEl.innerHTML = '';
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('Enter a valid email', 'err'); return; }
+      if (!confirm('Invite ' + email + ' as an admin?\n\nThey are approved immediately and must set up two-factor on first sign-in. Double-check the address — you can revoke access later if needed.')) return;
+      btn.textContent = 'Sending…'; btn.disabled = true;
+      var r = await sb.functions.invoke('admin-invite', { body: { email: email } });
+      btn.textContent = 'Send invite'; btn.disabled = false;
+      if (r.error) {
+        var msg = 'Invite failed';
+        try { var ctx = await r.error.context.json(); if (ctx && ctx.error) msg = ctx.error; }
+        catch (e2) { if (r.error.message) msg = r.error.message; }
+        toast(msg, 'err'); return;
+      }
+      var data = r.data || {};
+      document.getElementById('invite-email').value = '';
+      if (data.inviteLink) {
+        resEl.innerHTML = '<div class="setup-banner" style="display:block">'
+          + '<strong>Invite ready for ' + esc(data.email) + '.</strong><br>'
+          + 'Send them this one-time link to set their password (expires in 24h):'
+          + '<code style="word-break:break-all;display:block;margin:8px 0">' + esc(data.inviteLink) + '</code>'
+          + '<button class="btn sm" type="button" id="copy-link-btn">Copy link</button> '
+          + '<a class="btn ghost sm" target="_blank" rel="noopener noreferrer" href="' + esc(waInvite(data.email, data.inviteLink)) + '">Share on WhatsApp</a>'
+          + '</div>';
+        document.getElementById('copy-link-btn').addEventListener('click', function () {
+          (navigator.clipboard ? navigator.clipboard.writeText(data.inviteLink) : Promise.reject())
+            .then(function () { toast('Link copied', 'ok'); })
+            .catch(function () { toast('Copy failed — select the link manually', 'err'); });
+        });
+      } else {
+        resEl.innerHTML = '<div class="setup-banner" style="display:block"><strong>' + esc(data.email)
+          + '</strong> already had an account and is now an approved admin.</div>';
+      }
+      loadTeam();
+    });
+
+    async function revokeAdmin(email) {
+      if (!confirm('Revoke admin access for ' + email + '?\n\nThey keep their login but can no longer change anything.')) return;
+      var r = await sb.from('app_admins').update({ status: 'revoked' }).eq('email', email);
+      if (r.error) { toast(writeErr(r.error), 'err'); return; }
+      toast('Access revoked', 'ok'); loadTeam();
+    }
+    async function reapproveAdmin(email) {
+      var r = await sb.from('app_admins').update({ status: 'approved' }).eq('email', email);
+      if (r.error) { toast(writeErr(r.error), 'err'); return; }
+      toast('Re-approved', 'ok'); loadTeam();
+    }
+    document.getElementById('team-container').addEventListener('click', function (e) {
+      var rev = e.target.closest('[data-revoke]');
+      var rea = e.target.closest('[data-reapprove]');
+      if (rev) revokeAdmin(rev.getAttribute('data-revoke'));
+      else if (rea) reapproveAdmin(rea.getAttribute('data-reapprove'));
+    });
 
     // ── Keyboard close for modals ─────────────────────────
     document.addEventListener('keydown', function (e) {
