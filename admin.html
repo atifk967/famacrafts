@@ -830,14 +830,17 @@
     }
     async function startEnroll() {
       mfaMode = 'enroll';
-      try {   // clear half-finished factors so enroll() doesn't collide
+      try {   // clear half-finished factors so enroll() doesn't collide.
+        // NOTE: listFactors().totp is VERIFIED-only; unverified leftovers live in .all
         var fl = await sb.auth.mfa.listFactors();
-        var totp = (fl.data && fl.data.totp) || [];
-        for (var i = 0; i < totp.length; i++) {
-          if (totp[i].status !== 'verified') { try { await sb.auth.mfa.unenroll({ factorId: totp[i].id }); } catch (e) {} }
+        var all = (fl.data && fl.data.all) || [];
+        for (var i = 0; i < all.length; i++) {
+          if (all[i].factor_type === 'totp' && all[i].status !== 'verified') {
+            try { await sb.auth.mfa.unenroll({ factorId: all[i].id }); } catch (e) {}
+          }
         }
       } catch (e) {}
-      var res = await sb.auth.mfa.enroll({ factorType: 'totp' });
+      var res = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Famacrafts Admin' });
       if (res.error) { openMfaScreen(); mfaShowError(res.error.message); return; }
       mfaFactorId = res.data.id;
       document.getElementById('mfa-sub').textContent = 'Set up two-factor authentication';
