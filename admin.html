@@ -844,7 +844,13 @@
       if (res.error) { openMfaScreen(); mfaShowError(res.error.message); return; }
       mfaFactorId = res.data.id;
       document.getElementById('mfa-sub').textContent = 'Set up two-factor authentication';
-      document.getElementById('mfa-qr').innerHTML = res.data.totp.qr_code;
+      // qr_code is a "data:image/svg+xml;utf-8,<svg…>" URI — render the SVG only
+      var qr = res.data.totp.qr_code || '';
+      var svgAt = qr.indexOf('<svg');
+      var qrEl = document.getElementById('mfa-qr');
+      qrEl.innerHTML = svgAt >= 0 ? qr.slice(svgAt) : '<img alt="Two-factor QR code" src="' + qr + '">';
+      var pic = qrEl.querySelector('svg, img');
+      if (pic) { pic.style.width = '200px'; pic.style.height = '200px'; }
       document.getElementById('mfa-secret').textContent = res.data.totp.secret;
       document.getElementById('mfa-enroll').style.display = '';
       openMfaScreen();
