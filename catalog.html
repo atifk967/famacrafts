@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catalog — Famacrafts</title>
+  <meta name="description" content="Browse the full Famacrafts catalog — handmade flower boxes, gift baskets, pressed-flower cards, keepsakes and more. Search and filter, then order on WhatsApp." />
+  <meta property="og:title" content="Catalog — Famacrafts" />
+  <meta property="og:description" content="Browse the full Famacrafts catalog. Search, filter, and order on WhatsApp." />
+  <meta property="og:type" content="website" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Dancing+Script:wght@500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Shared styles (tokens, nav, buttons, product card, carousel, lightbox, footer) -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Catalog-specific UI -->
+  <style>
+    .catalog-page { padding: 36px 0 80px; }
+    @media (min-width: 720px) { .catalog-page { padding: 52px 0 110px; } }
+
+    .catalog-head { text-align: center; margin-bottom: 26px; }
+    .catalog-head .label { margin-bottom: 14px; }
+    .catalog-head h1 {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(40px, 7vw, 72px);
+      line-height: 1.02;
+      letter-spacing: -0.5px;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+
+    /* sticky search + filters under the nav */
+    .toolbar {
+      position: sticky;
+      top: 56px;
+      z-index: 90;
+      background: rgba(251,247,250,0.94);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 0;
+      margin-bottom: 32px;
+    }
+    .toolbar .container { display: flex; flex-direction: column; gap: 12px; }
+
+    .search-wrap { position: relative; }
+    .search-wrap svg {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      color: var(--ink-soft); pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 18px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 12px 44px 12px 44px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--pink-deep); }
+    .search-clear {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--ink-soft); font-size: 18px;
+      line-height: 1; padding: 6px; display: none;
+    }
+    .search-clear.show { display: block; }
+
+    .chips-row {
+      display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap;
+    }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+    .chip {
+      font-family: var(--label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--plum);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 14px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .chip.active { background: var(--plum); color: #fff; border-color: var(--plum); }
+    @media (hover: hover) {
+      .chip:hover { border-color: var(--pink-deep); }
+      .chip.active:hover { background: var(--ink); }
+    }
+    .catalog-count {
+      font-family: var(--label);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Sticky nav ─────────────────────────────────────────── -->
+  <header class="nav" role="banner">
+    <div class="container">
+      <a href="index.html" class="nav-brand">Famacrafts</a>
+      <button class="nav-menu-btn" id="menuOpenBtn" aria-label="Open navigation menu">Menu</button>
+    </div>
+  </header>
+
+  <!-- ── Full-screen overlay nav ───────────────────────────── -->
+  <div class="nav-overlay" id="navOverlay" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <button class="nav-overlay-close" id="menuCloseBtn" aria-label="Close navigation menu">✕</button>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html#about">About</a></li>
+      <li><a href="catalog.html">Catalog</a></li>
+      <li><a href="index.html#workshops">Workshops</a></li>
+      <li><a href="index.html#custom">Custom Orders</a></li>
+    </ul>
+  </div>
+
+  <main id="top">
+    <section class="catalog-page" aria-labelledby="catalog-heading">
+      <div class="container">
+        <div class="catalog-head">
+          <span class="label" id="catalog-heading">The full collection</span>
+          <h1>Everything we make.</h1>
+        </div>
+      </div>
+
+      <!-- search + category filters -->
+      <div class="toolbar">
+        <div class="container">
+          <div class="search-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" id="search" class="search-input" placeholder="Search products…" autocomplete="off" aria-label="Search products" />
+            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">✕</button>
+          </div>
+          <div class="chips-row">
+            <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+            <span class="catalog-count" id="catalog-count"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="catalog-grid" id="catalog-grid">
+          <p class="empty-state">Loading…</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <span class="footer-brand">Famacrafts</span>
+      <span class="footer-label">Made by hand · Made with love</span>
+      <nav class="footer-links" aria-label="Footer links">
+        <a id="footer-ig"  href="#" target="_blank" rel="noopener">Instagram</a>
+        <a id="footer-wa"  href="#" target="_blank" rel="noopener">WhatsApp</a>
+        <a id="footer-loc" href="#">Lahore, Pakistan</a>
+      </nav>
+      <p class="footer-copy">© <span id="copy-year"></span> Famacrafts. All rights reserved.</p>
+      <p class="footer-credit">Developed by <a href="https://velocis.io" target="_blank" rel="noopener">Velocis</a></p>
+    </div>
+  </footer>
+
+  <!-- ── Lightbox ───────────────────────────────────────────── -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Product photo">
+    <button type="button" class="lightbox-nav prev" aria-label="Previous photo">‹</button>
+    <img class="lightbox-img" id="lightbox-img" alt="" />
+    <button type="button" class="lightbox-nav next" aria-label="Next photo">›</button>
+    <button type="button" class="lightbox-close" aria-label="Close">✕</button>
+  </div>
+
+  <!-- ── WhatsApp FAB ───────────────────────────────────────── -->
+  <a class="fab" id="fabBtn" href="#" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/>
+    </svg>
+  </a>
+
+  <!-- ── Data + Supabase ───────────────────────────────────── -->
+  <script src="config.js"></script>
+  <script src="products.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <!-- ── App script ─────────────────────────────────────────── -->
+  <script>
+    (function () {
+      'use strict';
+
+      var D = window.FAMACRAFTS || {};
+
+      // ── Helpers (shared behaviour with the homepage) ──────
+      function productLink(pid) {
+        return location.origin + location.pathname + '#product-' + pid;
+      }
+      function waUrl(productName, link) {
+        var tmpl = D.whatsappTemplate || "Hi Famacrafts! I'm interested in {PRODUCT}.";
+        var msg = tmpl.replace('{PRODUCT}', productName);
+        if (link) { msg += '\n\nProduct link: ' + link; }
+        return 'https://wa.me/' + (D.whatsapp || '') + '?text=' + encodeURIComponent(msg);
+      }
+      function esc(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function imgSrc(raw, w) {
+        if (!raw) return '';
+        if (raw.includes('res.cloudinary.com') && raw.includes('/upload/')) {
+          return raw.replace('/upload/', '/upload/w_' + w + ',q_80,f_auto/');
+        }
+        return raw;
+      }
+      function initCarousels(container) {
+        var carousels = container.querySelectorAll('.carousel[data-count]');
+        Array.prototype.forEach.call(carousels, function (c) {
+          if (parseInt(c.getAttribute('data-count'), 10) <= 1) { return; }
+          var track = c.querySelector('.carousel-track');
+          var dots  = c.querySelectorAll('.carousel-dot');
+          if (!track || !dots.length) { return; }
+          track.addEventListener('scroll', function () {
+            var idx = Math.round(track.scrollLeft / track.clientWidth);
+            Array.prototype.forEach.call(dots, function (d, i) { d.classList.toggle('active', i === idx); });
+          }, { passive: true });
+        });
+      }
+      function maybeScrollToHash() {
+        if (location.hash.indexOf('#product-') !== 0) { return; }
+        var el = document.getElementById(location.hash.slice(1));
+        if (!el) { return; }
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('product-highlight');
+        setTimeout(function () { el.classList.remove('product-highlight'); }, 2400);
+      }
+
+      // ── Lightbox ──────────────────────────────────────────
+      var lbImages = [], lbIndex = 0;
+      function lbShow() {
+        var lb = document.getElementById('lightbox');
+        document.getElementById('lightbox-img').src = lbImages[lbIndex] || '';
+        var multi = lbImages.length > 1;
+        lb.querySelector('.lightbox-nav.prev').hidden = !multi;
+        lb.querySelector('.lightbox-nav.next').hidden = !multi;
+      }
+      function openLightbox(images, index) {
+        lbImages = images || []; lbIndex = index || 0;
+        if (!lbImages.length) { return; }
+        lbShow();
+        document.getElementById('lightbox').classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('open');
+        document.getElementById('lightbox-img').src = '';
+        document.body.style.overflow = '';
+      }
+      function lbStep(d) {
+        if (lbImages.length < 2) { return; }
+        lbIndex = (lbIndex + d + lbImages.length) % lbImages.length;
+        lbShow();
+      }
+      (function setupLightbox() {
+        var lb = document.getElementById('lightbox');
+        if (!lb) { return; }
+        lb.addEventListener('click', function (e) {
+          if (e.target === lb || e.target.closest('.lightbox-close')) { closeLightbox(); return; }
+          var nav = e.target.closest('.lightbox-nav');
+          if (nav) { lbStep(nav.classList.contains('next') ? 1 : -1); }
+        });
+        document.addEventListener('keydown', function (e) {
+          if (!lb.classList.contains('open')) { return; }
+          if (e.key === 'Escape') { closeLightbox(); }
+          else if (e.key === 'ArrowRight') { lbStep(1); }
+          else if (e.key === 'ArrowLeft') { lbStep(-1); }
+        });
+      })();
+
+      // ── Render product cards (identical markup to the homepage) ──
+      function renderProducts(products) {
+        var grid = document.getElementById('catalog-grid');
+        if (!products || products.length === 0) {
+          grid.innerHTML = '<p class="empty-state">No products match your search — try a different word or category.</p>';
+          return;
+        }
+        var html = '';
+        products.forEach(function (p, i) {
+          var isFirst = i < 2;
+          var pid = p.id || ('p' + i);
+          var imgs = [];
+          if (Array.isArray(p.images)) { imgs = p.images.filter(function (u) { return u && String(u).trim(); }); }
+          if (!imgs.length) { var single = p.image_url || p.image || ''; if (single) { imgs = [single]; } }
+
+          html += '<article class="product" id="product-' + esc(pid) + '">';
+          html += '<div class="product-img-wrap">';
+          if (imgs.length) {
+            html += '<div class="carousel" data-count="' + imgs.length + '">';
+            html += '<div class="carousel-track">';
+            imgs.forEach(function (u, idx) {
+              html += '<img class="carousel-slide"'
+                + ' src="' + esc(imgSrc(u, 800)) + '"'
+                + ' data-full="' + esc(imgSrc(u, 1600)) + '"'
+                + ' alt="' + esc(p.name) + (imgs.length > 1 ? ' — photo ' + (idx + 1) + ' of ' + imgs.length : '') + '"'
+                + (isFirst ? ' loading="eager"' : ' loading="lazy"')
+                + ' onerror="this.classList.add(\'slide-failed\')"'
+                + ' />';
+            });
+            html += '</div>';
+            if (imgs.length > 1) {
+              html += '<button type="button" class="carousel-nav prev" aria-label="Previous image">‹</button>';
+              html += '<button type="button" class="carousel-nav next" aria-label="Next image">›</button>';
+              html += '<div class="carousel-dots">';
+              imgs.forEach(function (u, idx) {
+                html += '<span class="carousel-dot' + (idx === 0 ? ' active' : '') + '" data-idx="' + idx + '"></span>';
+              });
+              html += '</div>';
+            }
+            html += '</div>';
+          } else {
+            html += '<div class="product-img-placeholder">image<br>coming soon</div>';
+          }
+          html += '</div>';
+
+          html += '<div class="product-body">';
+          html += '<p class="product-category">' + esc(p.category) + '</p>';
+          html += '<h3 class="product-name">' + esc(p.name) + '</h3>';
+          html += '<p class="product-tagline">' + esc(p.tagline) + '</p>';
+          if (p.description) { html += '<p class="product-desc">' + esc(p.description) + '</p>'; }
+          html += '<div class="product-actions">';
+          html += '<a class="btn" href="' + esc(waUrl(p.name, productLink(pid))) + '" target="_blank" rel="noopener">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/></svg>';
+          html += 'Order on WhatsApp</a>';
+          if (p.description) {
+            html += '<button class="btn ghost read-more-btn" type="button" data-target="product-' + esc(pid) + '">Read more</button>';
+          }
+          html += '</div></div></article>';
+        });
+        grid.innerHTML = html;
+        initCarousels(grid);
+        maybeScrollToHash();
+      }
+
+      // ── Search index + filtering ──────────────────────────
+      var allProducts = [], activeCategory = '', query = '';
+
+      function indexOf(p) {
+        var tags = Array.isArray(p.tags) ? p.tags.join(' ') : '';
+        return [p.name, p.category, p.tagline, p.description, tags]
+          .join(' ').toLowerCase();
+      }
+      function applyFilter() {
+        var count = document.getElementById('catalog-count');
+        if (!allProducts.length) {
+          document.getElementById('catalog-grid').innerHTML =
+            '<p class="empty-state">Products coming soon — check back shortly.</p>';
+          count.textContent = '';
+          return;
+        }
+        var tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+        var filtered = allProducts.filter(function (p) {
+          if (activeCategory && (p.category || '') !== activeCategory) { return false; }
+          if (!tokens.length) { return true; }
+          return tokens.every(function (t) { return p._search.indexOf(t) !== -1; });
+        });
+        renderProducts(filtered);
+        var total = allProducts.length;
+        count.textContent = filtered.length === total
+          ? total + ' item' + (total === 1 ? '' : 's')
+          : filtered.length + ' of ' + total;
+      }
+      function renderChips() {
+        var cats = {};
+        allProducts.forEach(function (p) { var c = (p.category || '').trim(); if (c) { cats[c] = true; } });
+        var list = Object.keys(cats).sort(function (a, b) { return a.localeCompare(b); });
+        var html = '<button type="button" class="chip active" data-cat="">All</button>';
+        list.forEach(function (c) { html += '<button type="button" class="chip" data-cat="' + esc(c) + '">' + esc(c) + '</button>'; });
+        document.getElementById('chips').innerHTML = html;
+      }
+
+      // ── Wire static parts (footer, FAB, nav, toolbar) ─────
+      function wireStatic() {
+        document.getElementById('copy-year').textContent = new Date().getFullYear();
+        var footerIg = document.getElementById('footer-ig');
+        if (D.instagramUrl) { footerIg.href = D.instagramUrl; }
+        document.getElementById('footer-wa').href  = 'https://wa.me/' + (D.whatsapp || '');
+        document.getElementById('footer-loc').textContent = D.location || 'Lahore, Pakistan';
+        document.getElementById('fabBtn').href = 'https://wa.me/' + (D.whatsapp || '');
+
+        var overlay  = document.getElementById('navOverlay');
+        var openBtn  = document.getElementById('menuOpenBtn');
+        var closeBtn = document.getElementById('menuCloseBtn');
+        function openMenu()  { overlay.classList.add('open');    document.body.style.overflow = 'hidden'; closeBtn.focus(); }
+        function closeMenu() { overlay.classList.remove('open'); document.body.style.overflow = '';       openBtn.focus();  }
+        openBtn.addEventListener('click', openMenu);
+        closeBtn.addEventListener('click', closeMenu);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) closeMenu(); });
+
+        // Search input (debounced)
+        var searchEl = document.getElementById('search');
+        var clearEl  = document.getElementById('search-clear');
+        var t;
+        searchEl.addEventListener('input', function () {
+          query = this.value.trim();
+          clearEl.classList.toggle('show', !!query);
+          clearTimeout(t);
+          t = setTimeout(applyFilter, 120);
+        });
+        clearEl.addEventListener('click', function () {
+          searchEl.value = ''; query = ''; clearEl.classList.remove('show'); searchEl.focus(); applyFilter();
+        });
+
+        // Category chips
+        document.getElementById('chips').addEventListener('click', function (e) {
+          var chip = e.target.closest('.chip');
+          if (!chip) { return; }
+          activeCategory = chip.getAttribute('data-cat') || '';
+          this.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+          chip.classList.add('active');
+          applyFilter();
+        });
+
+        // Grid interactions: carousel arrows/dots, lightbox, read-more
+        document.getElementById('catalog-grid').addEventListener('click', function (e) {
+          var nav = e.target.closest('.carousel-nav');
+          if (nav) {
+            var track = nav.closest('.carousel').querySelector('.carousel-track');
+            track.scrollBy({ left: nav.classList.contains('next') ? track.clientWidth : -track.clientWidth, behavior: 'smooth' });
+            return;
+          }
+          var dot = e.target.closest('.carousel-dot');
+          if (dot) {
+            var tk = dot.closest('.carousel').querySelector('.carousel-track');
+            tk.scrollTo({ left: tk.clientWidth * (parseInt(dot.getAttribute('data-idx'), 10) || 0), behavior: 'smooth' });
+            return;
+          }
+          var slide = e.target.closest('.carousel-slide');
+          if (slide) {
+            var allSlides = slide.closest('.carousel-track').querySelectorAll('.carousel-slide');
+            var urls = Array.prototype.map.call(allSlides, function (s) { return s.getAttribute('data-full') || s.src; });
+            var idx = Array.prototype.indexOf.call(allSlides, slide);
+            openLightbox(urls, idx < 0 ? 0 : idx);
+            return;
+          }
+          var btn = e.target.closest('.read-more-btn');
+          if (!btn) { return; }
+          var card = document.getElementById(btn.dataset.target);
+          if (!card) { return; }
+          btn.textContent = card.classList.toggle('expanded') ? 'Less' : 'Read more';
+        });
+      }
+
+      // ── Boot ──────────────────────────────────────────────
+      function start(products) {
+        allProducts = (products || []).map(function (p) { p._search = indexOf(p); return p; });
+        renderChips();
+        applyFilter();
+      }
+      async function boot() {
+        wireStatic();
+        var useSupabase = window.SUPABASE_URL && window.SUPABASE_ANON_KEY
+          && window.SUPABASE_URL !== '' && window.SUPABASE_ANON_KEY !== '';
+        if (useSupabase && window.supabase) {
+          try {
+            var sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+            var res = await sb.from('products').select('*')
+              .eq('available', true)
+              .order('featured',      { ascending: false })
+              .order('display_order', { ascending: true  })
+              .order('created_at',    { ascending: false });
+            if (res.error) { throw res.error; }
+            start(res.data || []);
+          } catch (err) {
+            console.warn('Supabase fetch failed, falling back to products.js', err);
+            start(D.products || []);
+          }
+        } else {
+          start(D.products || []);
+        }
+      }
+      boot();
+    })();
+  </script>
+
+</body>
+</html>
