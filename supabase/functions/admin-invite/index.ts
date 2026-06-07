@@ -126,20 +126,24 @@ Deno.serve(async (req) => {
     return json(429, { error: "Too many invites in a short time. Try again in a minute." }, cors);
   }
 
-  // 5. Provision the auth account + generate a one-time invite link to share.
+  // 5. Provision the auth account + generate a one-time sign-in link to share.
   //    generateLink does NOT send email itself — we return the link so the
   //    owner can share it (e.g. over WhatsApp). Sign-up being disabled does not
-  //    block admin-side invites.
-  let inviteLink: string | null = null;
+  //    block admin-side invites. For a brand-new email we use an INVITE link;
+  //    if the account already exists (e.g. a prior invite) we fall back to a
+  //    RECOVERY link so they can still (re)set a password and sign in.
   const redirectTo = `${SITE_URL}/admin`;
-  const gen = await admin.auth.admin.generateLink({
-    type: "invite",
-    email,
-    options: { redirectTo },
-  });
+  let inviteLink: string | null = null;
+  let mode: "invite" | "recovery" = "invite";
+
+  const gen = await admin.auth.admin.generateLink({ type: "invite", email, options: { redirectTo } });
   if (gen.error) {
-    // Already has an account → fine, we just (re)approve them on the allowlist.
-    if (!/already.*(registered|exists)/i.test(gen.error.message)) {
+    if (/already.*(registered|exists)/i.test(gen.error.message)) {
+      mode = "recovery";
+      const rec = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo } });
+      if (rec.error) return json(400, { error: rec.error.message }, cors);
+      inviteLink = rec.data?.properties?.action_link ?? null;
+    } else {
       return json(400, { error: gen.error.message }, cors);
     }
   } else {
@@ -156,10 +160,5 @@ Deno.serve(async (req) => {
   }, { onConflict: "email" });
   if (upErr) return json(500, { error: upErr.message }, cors);
 
-  return json(200, {
-    ok: true,
-    email,
-    inviteLink,
-    alreadyHadAccount: inviteLink === null,
-  }, cors);
+  return json(200, { ok: true, email, inviteLink, mode }, cors);
 });

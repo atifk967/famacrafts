@@ -115,7 +115,7 @@
     .btn.sm     { padding: 7px 16px; font-size: 9px; letter-spacing: 2px; }
 
     /* ── Login screen ────────────────────────────────────── */
-    #login-screen {
+    #login-screen, #mfa-screen, #setpw-screen {
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -514,6 +514,29 @@
     </div>
   </div>
 
+  <!-- ══ SET PASSWORD (first sign-in via invite / recovery) ══ -->
+  <div id="setpw-screen" style="display:none">
+    <div class="login-card">
+      <span class="login-brand">Famacrafts</span>
+      <span class="login-sub">Create your password</span>
+      <div class="error-msg" id="setpw-error"></div>
+      <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:18px;text-align:center">
+        Welcome! Set a password to finish setting up your admin account — next you'll add two-factor authentication.
+      </p>
+      <form id="setpw-form" novalidate>
+        <div class="field">
+          <label for="setpw-pw">New password</label>
+          <input type="password" id="setpw-pw" autocomplete="new-password" required minlength="8" placeholder="At least 8 characters" />
+        </div>
+        <div class="field">
+          <label for="setpw-pw2">Confirm password</label>
+          <input type="password" id="setpw-pw2" autocomplete="new-password" required minlength="8" placeholder="Re-enter password" />
+        </div>
+        <button type="submit" class="btn full" id="setpw-btn">Set password &amp; continue</button>
+      </form>
+    </div>
+  </div>
+
   <!-- ══ DASHBOARD ══════════════════════════════════════════ -->
   <div id="dashboard">
 
@@ -728,6 +751,10 @@
   <script>
     'use strict';
 
+    // Capture invite/recovery intent from the URL before supabase-js consumes
+    // the hash — so a newly invited admin is routed to a "set your password" step.
+    var INVITE_FLOW = /[?#&]type=(invite|recovery)\b/.test(location.href);
+
     // ── Check Supabase config ─────────────────────────────
     var configured = window.SUPABASE_URL && window.SUPABASE_URL !== ''
                   && window.SUPABASE_ANON_KEY && window.SUPABASE_ANON_KEY !== '';
@@ -793,6 +820,7 @@
       }
 
       var { data: { session } } = await sb.auth.getSession();
+      if (session && INVITE_FLOW) { showSetPassword(); return; }
       if (session) {
         gateAfterAuth();
       }
@@ -831,15 +859,50 @@
       if (sb) await sb.auth.signOut();
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('mfa-screen').style.display = 'none';
+      document.getElementById('setpw-screen').style.display = 'none';
       document.getElementById('login-screen').style.display = '';
     });
 
     function showDash() {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('mfa-screen').style.display   = 'none';
+      document.getElementById('setpw-screen').style.display = 'none';
       document.getElementById('dashboard').style.display    = 'block';
       loadProducts();
       detectOwner();
+    }
+
+    // ── First sign-in: set a password (invite / recovery links) ──
+    function showSetPassword() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('mfa-screen').style.display   = 'none';
+      document.getElementById('dashboard').style.display    = 'none';
+      document.getElementById('setpw-screen').style.display = '';
+      document.getElementById('setpw-error').classList.remove('show');
+      setTimeout(function () { document.getElementById('setpw-pw').focus(); }, 60);
+    }
+    document.getElementById('setpw-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var pw  = document.getElementById('setpw-pw').value;
+      var pw2 = document.getElementById('setpw-pw2').value;
+      var err = document.getElementById('setpw-error');
+      err.classList.remove('show');
+      if (pw.length < 8) { err.textContent = 'Use at least 8 characters.'; err.classList.add('show'); return; }
+      if (pw !== pw2)    { err.textContent = 'Passwords do not match.';     err.classList.add('show'); return; }
+      var btn = document.getElementById('setpw-btn');
+      btn.textContent = 'Saving…'; btn.disabled = true;
+      var res = await sb.auth.updateUser({ password: pw });
+      btn.textContent = 'Set password & continue'; btn.disabled = false;
+      if (res.error) { err.textContent = res.error.message; err.classList.add('show'); return; }
+      try { history.replaceState(null, '', location.pathname); } catch (e2) {}  // strip the token from the URL
+      toast('Password set ✓', 'ok');
+      gateAfterAuth();   // → two-factor enrollment
+    });
+    // Recovery links emit PASSWORD_RECOVERY during init — route to set-password.
+    if (sb) {
+      sb.auth.onAuthStateChange(function (event) {
+        if (event === 'PASSWORD_RECOVERY') { showSetPassword(); }
+      });
     }
 
     // ── MFA (TOTP two-factor) ─────────────────────────────
