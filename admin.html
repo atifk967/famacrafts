@@ -485,6 +485,35 @@
     </div>
   </div>
 
+  <!-- ══ MFA STEP (TOTP two-factor) ════════════════════════ -->
+  <div id="mfa-screen" style="display:none">
+    <div class="login-card">
+      <span class="login-brand">Famacrafts</span>
+      <span class="login-sub" id="mfa-sub">Two-factor authentication</span>
+      <div class="error-msg" id="mfa-error"></div>
+
+      <div id="mfa-enroll" style="display:none">
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:14px;text-align:center">
+          Scan this QR with an authenticator app (Google Authenticator, Authy, 1Password), then enter the 6-digit code to finish setup.
+        </p>
+        <div id="mfa-qr" style="display:flex;justify-content:center;margin-bottom:12px"></div>
+        <p style="font-size:11px;color:var(--ink-soft);text-align:center;margin-bottom:14px">
+          Can't scan? Enter this key manually:<br>
+          <code id="mfa-secret" style="word-break:break-all;background:rgba(90,70,99,0.12);padding:2px 6px;border-radius:3px;font-family:'Courier New',monospace"></code>
+        </p>
+      </div>
+
+      <form id="mfa-form" novalidate>
+        <div class="field">
+          <label for="mfa-code">6-digit code</label>
+          <input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" required placeholder="123456" />
+        </div>
+        <button type="submit" class="btn full" id="mfa-btn">Verify</button>
+      </form>
+      <button class="btn ghost sm" id="mfa-cancel" style="margin-top:10px;width:100%">Cancel</button>
+    </div>
+  </div>
+
   <!-- ══ DASHBOARD ══════════════════════════════════════════ -->
   <div id="dashboard">
 
@@ -720,7 +749,7 @@
 
       var { data: { session } } = await sb.auth.getSession();
       if (session) {
-        showDash();
+        gateAfterAuth();
       }
     }
 
@@ -749,21 +778,91 @@
         errEl.textContent = error.message;
         errEl.classList.add('show');
       } else {
-        showDash();
+        gateAfterAuth();
       }
     });
 
     document.getElementById('logout-btn').addEventListener('click', async function () {
       if (sb) await sb.auth.signOut();
       document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('mfa-screen').style.display = 'none';
       document.getElementById('login-screen').style.display = '';
     });
 
     function showDash() {
       document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('mfa-screen').style.display   = 'none';
       document.getElementById('dashboard').style.display    = 'block';
       loadProducts();
     }
+
+    // ── MFA (TOTP two-factor) ─────────────────────────────
+    var mfaFactorId = null, mfaMode = null;
+    function mfaShowError(msg) {
+      var el = document.getElementById('mfa-error');
+      el.textContent = msg; el.classList.add('show');
+    }
+    function openMfaScreen() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display    = 'none';
+      document.getElementById('mfa-screen').style.display   = '';
+      document.getElementById('mfa-error').classList.remove('show');
+      document.getElementById('mfa-code').value = '';
+      setTimeout(function () { document.getElementById('mfa-code').focus(); }, 60);
+    }
+    // After password sign-in: send to dashboard (aal2), TOTP challenge (factor
+    // enrolled), or first-time enrollment (no factor yet).
+    async function gateAfterAuth() {
+      try {
+        var aal = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aal.data && aal.data.currentLevel === 'aal2') { showDash(); return; }
+        var fl = await sb.auth.mfa.listFactors();
+        var totp = (fl.data && fl.data.totp) || [];
+        var verified = totp.filter(function (f) { return f.status === 'verified'; });
+        if (verified.length) { startChallenge(verified[0].id); } else { startEnroll(); }
+      } catch (e) { showDash(); }
+    }
+    function startChallenge(factorId) {
+      mfaFactorId = factorId; mfaMode = 'challenge';
+      document.getElementById('mfa-sub').textContent = 'Enter your authenticator code';
+      document.getElementById('mfa-enroll').style.display = 'none';
+      openMfaScreen();
+    }
+    async function startEnroll() {
+      mfaMode = 'enroll';
+      try {   // clear half-finished factors so enroll() doesn't collide
+        var fl = await sb.auth.mfa.listFactors();
+        var totp = (fl.data && fl.data.totp) || [];
+        for (var i = 0; i < totp.length; i++) {
+          if (totp[i].status !== 'verified') { try { await sb.auth.mfa.unenroll({ factorId: totp[i].id }); } catch (e) {} }
+        }
+      } catch (e) {}
+      var res = await sb.auth.mfa.enroll({ factorType: 'totp' });
+      if (res.error) { openMfaScreen(); mfaShowError(res.error.message); return; }
+      mfaFactorId = res.data.id;
+      document.getElementById('mfa-sub').textContent = 'Set up two-factor authentication';
+      document.getElementById('mfa-qr').innerHTML = res.data.totp.qr_code;
+      document.getElementById('mfa-secret').textContent = res.data.totp.secret;
+      document.getElementById('mfa-enroll').style.display = '';
+      openMfaScreen();
+    }
+    document.getElementById('mfa-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var code = document.getElementById('mfa-code').value.trim();
+      if (!/^[0-9]{6}$/.test(code)) { mfaShowError('Enter the 6-digit code.'); return; }
+      var btn = document.getElementById('mfa-btn');
+      btn.textContent = 'Verifying…'; btn.disabled = true;
+      var res = await sb.auth.mfa.challengeAndVerify({ factorId: mfaFactorId, code: code });
+      btn.textContent = 'Verify'; btn.disabled = false;
+      if (res.error) { mfaShowError(res.error.message); return; }
+      if (mfaMode === 'enroll') { toast('Two-factor enabled ✓', 'ok'); }
+      showDash();
+    });
+    document.getElementById('mfa-cancel').addEventListener('click', async function () {
+      if (sb) { try { await sb.auth.signOut(); } catch (e) {} }
+      document.getElementById('mfa-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = '';
+    });
 
     // ── Tabs ──────────────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach(function (btn) {
