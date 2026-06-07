@@ -850,6 +850,59 @@
     // Open add/edit modal
     // ── Multi-image state for the product modal ───────────────
     var pmImages = [];
+    var pmSessionUploads = [];   // photos uploaded in this modal session (for orphan cleanup)
+
+    // ── Image optimization: downscale + recompress before upload ──
+    // Turns multi-MB phone photos into ~200KB WebP, keeping Supabase storage
+    // and egress tiny even with hundreds of products.
+    var IMG_MAX_DIM = 1600;      // longest edge in px (plenty for web + lightbox)
+    var IMG_QUALITY = 0.82;      // WebP quality
+    function canvasToBlob(canvas, type, q) {
+      return new Promise(function (res) { canvas.toBlob(function (b) { res(b); }, type, q); });
+    }
+    function loadImageEl(file) {
+      return new Promise(function (res, rej) {
+        var img = new Image(), url = URL.createObjectURL(file);
+        img.onload  = function () { URL.revokeObjectURL(url); res(img); };
+        img.onerror = function (e) { URL.revokeObjectURL(url); rej(e); };
+        img.src = url;
+      });
+    }
+    async function compressImage(file) {
+      var fallback = { blob: file, ext: (file.name.split('.').pop() || 'jpg').toLowerCase(), type: file.type || 'image/jpeg' };
+      if (!file.type || file.type.indexOf('image/') !== 0) return fallback;
+      try {
+        var img = await loadImageEl(file);
+        var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+        if (!iw || !ih) return fallback;
+        var scale = Math.min(1, IMG_MAX_DIM / Math.max(iw, ih));
+        var canvas = document.createElement('canvas');
+        canvas.width  = Math.round(iw * scale);
+        canvas.height = Math.round(ih * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        var blob = await canvasToBlob(canvas, 'image/webp', IMG_QUALITY);
+        var ext = 'webp', type = 'image/webp';
+        if (!blob) { blob = await canvasToBlob(canvas, 'image/jpeg', 0.85); ext = 'jpg'; type = 'image/jpeg'; }
+        if (blob && blob.size < file.size) return { blob: blob, ext: ext, type: type };
+        return fallback;        // already small / couldn't beat the original
+      } catch (e) {
+        return fallback;        // HEIC or decode failure → upload as-is
+      }
+    }
+
+    // ── Storage orphan cleanup ──
+    function storagePathFromUrl(url) {
+      var marker = '/product-images/';
+      var i = (url || '').indexOf(marker);
+      if (i < 0) return null;   // external/pasted URL — not ours to delete
+      return url.slice(i + marker.length).split('?')[0];
+    }
+    async function removeStorageObjects(urls) {
+      if (!sb || !urls || !urls.length) return;
+      var paths = urls.map(storagePathFromUrl).filter(Boolean);
+      if (paths.length) { try { await sb.storage.from('product-images').remove(paths); } catch (e) {} }
+    }
+
     function renderThumbs() {
       var prev = document.getElementById('pm-img-preview');
       if (!pmImages.length) {
@@ -872,7 +925,12 @@
     document.getElementById('pm-img-preview').addEventListener('click', function (e) {
       var x = e.target.closest('.thumb-x');
       if (!x) return;
-      pmImages.splice(parseInt(x.getAttribute('data-idx'), 10), 1);
+      var idx = parseInt(x.getAttribute('data-idx'), 10);
+      var url = pmImages[idx];
+      pmImages.splice(idx, 1);
+      // if this photo was uploaded this session (not yet persisted), free its storage now
+      var si = pmSessionUploads.indexOf(url);
+      if (si >= 0) { pmSessionUploads.splice(si, 1); removeStorageObjects([url]); }
       renderThumbs();
     });
 
@@ -880,6 +938,7 @@
       var form = document.getElementById('product-form');
       form.reset();
       pmImages = [];
+      pmSessionUploads = [];
       renderThumbs();
       document.getElementById('pm-upload-status').textContent = '';
 
@@ -910,7 +969,11 @@
       setTimeout(function () { document.getElementById('pm-name').focus(); }, 80);
     }
 
-    function closeProductModal() { document.getElementById('product-modal').classList.remove('open'); }
+    function closeProductModal() {
+      // free any photos uploaded this session but never saved (orphans)
+      if (pmSessionUploads.length) { removeStorageObjects(pmSessionUploads.slice()); pmSessionUploads = []; }
+      document.getElementById('product-modal').classList.remove('open');
+    }
 
     document.getElementById('new-product-btn').addEventListener('click', function () { openProductModal(); });
     document.getElementById('pm-close').addEventListener('click', closeProductModal);
@@ -939,25 +1002,31 @@
       if (!files.length || !sb) return;
       var status = document.getElementById('pm-upload-status');
       var done = 0;
+      var origBytes = 0, newBytes = 0;
       for (var i = 0; i < files.length; i++) {
         var file = files[i];
+        status.textContent = 'Optimizing ' + (i + 1) + ' of ' + files.length + '…';
+        var c = await compressImage(file);
+        origBytes += file.size; newBytes += (c.blob.size || file.size);
         status.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + '…';
-        var ext  = file.name.split('.').pop().toLowerCase();
-        var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
-        var up = await sb.storage.from('product-images').upload(path, file, {
-          contentType: file.type, upsert: false
+        var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + c.ext;
+        var up = await sb.storage.from('product-images').upload(path, c.blob, {
+          contentType: c.type, upsert: false, cacheControl: '31536000'  // 1yr immutable → fewer egress hits
         });
         if (up.error) {
           status.textContent = 'Upload failed: ' + up.error.message;
           toast('Upload failed: ' + file.name, 'err');
           continue;
         }
-        pmImages.push(sb.storage.from('product-images').getPublicUrl(up.data.path).data.publicUrl);
+        var url = sb.storage.from('product-images').getPublicUrl(up.data.path).data.publicUrl;
+        pmImages.push(url);
+        pmSessionUploads.push(url);
         done++;
         renderThumbs();
       }
-      status.textContent = done ? (done + ' photo' + (done > 1 ? 's' : '') + ' uploaded ✓') : '';
-      if (done) toast(done + ' photo' + (done > 1 ? 's' : '') + ' uploaded', 'ok');
+      var saved = origBytes > 0 ? Math.round((1 - newBytes / origBytes) * 100) : 0;
+      status.textContent = done ? (done + ' photo' + (done > 1 ? 's' : '') + ' uploaded ✓ — ' + Math.round(newBytes/1024) + ' KB (' + saved + '% smaller)') : '';
+      if (done) toast(done + ' photo' + (done > 1 ? 's' : '') + ' optimized & uploaded', 'ok');
       this.value = ''; // allow re-selecting the same file(s) again
     });
 
@@ -972,6 +1041,13 @@
       var id   = document.getElementById('pm-id').value;
       var name = document.getElementById('pm-name').value.trim();
       if (!name) { toast('Product name is required', 'err'); btn.textContent = 'Save Product'; btn.disabled = false; return; }
+
+      // remember the product's existing images so we can free any that get dropped
+      var originalImages = [];
+      if (id) {
+        var origP = products.find(function (p) { return p.id === id; });
+        if (origP) { originalImages = (Array.isArray(origP.images) && origP.images.length) ? origP.images.slice() : (origP.image_url ? [origP.image_url] : []); }
+      }
 
       // flush a URL that was typed but not yet added with Enter
       pmAddUrl();
@@ -999,6 +1075,12 @@
       if (error) {
         toast('Error: ' + error.message, 'err');
       } else {
+        // free storage for images removed from this product during the edit
+        if (id) {
+          var removed = originalImages.filter(function (u) { return pmImages.indexOf(u) < 0; });
+          removeStorageObjects(removed);
+        }
+        pmSessionUploads = [];   // uploads are now persisted — don't treat as orphans
         toast(id ? 'Product updated ✓' : 'Product added ✓', 'ok');
         closeProductModal();
         await loadProducts();
@@ -1007,8 +1089,11 @@
 
     async function delProduct(id, name) {
       if (!confirm('Delete "' + name + '"?\n\nThis cannot be undone.')) return;
+      var p = products.find(function (x) { return x.id === id; });
+      var imgs = p ? ((Array.isArray(p.images) && p.images.length) ? p.images : (p.image_url ? [p.image_url] : [])) : [];
       var { error } = await sb.from('products').delete().eq('id', id);
       if (error) { toast('Error: ' + error.message, 'err'); return; }
+      await removeStorageObjects(imgs);   // free the deleted product's photos from storage
       toast('Deleted', 'ok');
       await loadProducts();
     }
