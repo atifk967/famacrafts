@@ -1491,9 +1491,10 @@
           + '<div class="item-actions">'
             + (isOwnerRow
                 ? '<span style="font-size:10px;letter-spacing:2px;color:var(--ink-soft);text-transform:uppercase">Master</span>'
-                : (a.status === 'approved'
-                    ? '<button class="btn danger sm" data-revoke="' + esc(a.email) + '">Revoke</button>'
-                    : '<button class="btn ghost sm" data-reapprove="' + esc(a.email) + '">Re-approve</button>'))
+                : ((a.status === 'approved'
+                      ? '<button class="btn ghost sm" data-revoke="' + esc(a.email) + '">Revoke</button>'
+                      : '<button class="btn ghost sm" data-reapprove="' + esc(a.email) + '">Re-approve</button>')
+                   + '<button class="btn danger sm" data-delete="' + esc(a.email) + '">Delete</button>'))
           + '</div>'
         + '</div>';
       });
@@ -1558,11 +1559,26 @@
       if (r.error) { toast(writeErr(r.error), 'err'); return; }
       toast('Re-approved', 'ok'); loadTeam();
     }
+    // Permanent delete: removes the auth login AND the allowlist row (owner-only,
+    // two-factor, server-enforced via the admin-remove edge function).
+    async function deleteAdmin(email) {
+      if (!confirm('Permanently delete ' + email + '?\n\nThis deletes their login and admin access completely. This cannot be undone — use Revoke instead if you only want to pause access.')) return;
+      var r = await sb.functions.invoke('admin-remove', { body: { email: email } });
+      if (r.error) {
+        var msg = 'Delete failed';
+        try { var ctx = await r.error.context.json(); if (ctx && ctx.error) msg = ctx.error; }
+        catch (e2) { if (r.error.message) msg = r.error.message; }
+        toast(msg, 'err'); return;
+      }
+      toast('Member deleted', 'ok'); loadTeam();
+    }
     document.getElementById('team-container').addEventListener('click', function (e) {
       var rev = e.target.closest('[data-revoke]');
       var rea = e.target.closest('[data-reapprove]');
+      var del = e.target.closest('[data-delete]');
       if (rev) revokeAdmin(rev.getAttribute('data-revoke'));
       else if (rea) reapproveAdmin(rea.getAttribute('data-reapprove'));
+      else if (del) deleteAdmin(del.getAttribute('data-delete'));
     });
 
     // ── Keyboard close for modals ─────────────────────────
