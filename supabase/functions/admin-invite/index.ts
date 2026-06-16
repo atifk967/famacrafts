@@ -22,8 +22,13 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SITE_URL = "https://famacrafts.famacrafts.workers.dev";
-const ALLOWED_ORIGINS = new Set<string>([SITE_URL]);
+const SITE_URL = "https://famacrafts.pk";
+// Both the live custom domain and the Cloudflare Pages URL are accepted while
+// DNS propagates; invite/redirect links always point at SITE_URL.
+const ALLOWED_ORIGINS = new Set<string>([
+  SITE_URL,
+  "https://famacrafts.famacrafts.workers.dev",
+]);
 
 function corsHeaders(origin: string): Record<string, string> {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : SITE_URL;
