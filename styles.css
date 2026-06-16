@@ -352,6 +352,10 @@
       align-items: center;
       transition: box-shadow 0.2s, transform 0.2s;
       overflow: hidden;
+      /* skip layout/paint for off-screen cards — keeps a long catalog smooth.
+         contain-intrinsic-size reserves space so the scrollbar stays stable. */
+      content-visibility: auto;
+      contain-intrinsic-size: auto 620px;
     }
     @media (min-width: 720px) {
       .product { padding: 32px; gap: 36px; grid-template-columns: 46% 1fr; }
@@ -369,7 +373,9 @@
       aspect-ratio: 3 / 4;
       border-radius: 4px;
       overflow: hidden;
-      background: var(--pink);
+      /* white fill behind contained images so portrait/non-3:4 photos
+         letterbox onto white, not pink */
+      background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -411,7 +417,7 @@
       height: 100%;
       object-fit: contain;
       scroll-snap-align: center;
-      background: var(--pink);
+      background: #fff;
       cursor: zoom-in;
     }
     .carousel-slide.slide-failed { visibility: hidden; }

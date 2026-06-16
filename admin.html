@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Famacrafts — Admin</title>
+
+  <!-- Favicon / app icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Dancing+Script:wght@600&family=Italiana&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -1219,29 +1225,47 @@
       var files = Array.prototype.slice.call(this.files);
       if (!files.length || !sb) return;
       var status = document.getElementById('pm-upload-status');
-      var done = 0;
-      var origBytes = 0, newBytes = 0;
-      for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        status.textContent = 'Optimizing ' + (i + 1) + ' of ' + files.length + '…';
-        var c = await compressImage(file);
-        origBytes += file.size; newBytes += (c.blob.size || file.size);
-        status.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + '…';
-        var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + c.ext;
-        var up = await sb.storage.from('product-images').upload(path, c.blob, {
-          contentType: c.type, upsert: false, cacheControl: '31536000'  // 1yr immutable → fewer egress hits
-        });
-        if (up.error) {
-          status.textContent = 'Upload failed: ' + up.error.message;
+      var origBytes = 0, newBytes = 0, finished = 0;
+      var results = new Array(files.length);   // keep original selection order
+
+      // compress + upload a single file → stash its public URL at index i
+      async function processOne(file, i) {
+        try {
+          var c = await compressImage(file);
+          origBytes += file.size; newBytes += (c.blob.size || file.size);
+          var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + c.ext;
+          var up = await sb.storage.from('product-images').upload(path, c.blob, {
+            contentType: c.type, upsert: false, cacheControl: '31536000'  // 1yr immutable → fewer egress hits
+          });
+          if (up.error) { toast('Upload failed: ' + file.name, 'err'); return; }
+          results[i] = sb.storage.from('product-images').getPublicUrl(up.data.path).data.publicUrl;
+        } catch (err) {
           toast('Upload failed: ' + file.name, 'err');
-          continue;
+        } finally {
+          finished++;
+          status.textContent = 'Uploading ' + finished + ' of ' + files.length + '…';
         }
-        var url = sb.storage.from('product-images').getPublicUrl(up.data.path).data.publicUrl;
+      }
+
+      // upload several photos at once (limited concurrency) instead of one-by-one
+      status.textContent = 'Uploading 0 of ' + files.length + '…';
+      var CONCURRENCY = 4, cursor = 0;
+      async function worker() {
+        while (cursor < files.length) { var idx = cursor++; await processOne(files[idx], idx); }
+      }
+      var pool = [];
+      for (var w = 0; w < Math.min(CONCURRENCY, files.length); w++) { pool.push(worker()); }
+      await Promise.all(pool);
+
+      var done = 0;
+      results.forEach(function (url) {
+        if (!url) { return; }
         pmImages.push(url);
         pmSessionUploads.push(url);
         done++;
-        renderThumbs();
-      }
+      });
+      renderThumbs();
+
       var saved = origBytes > 0 ? Math.round((1 - newBytes / origBytes) * 100) : 0;
       status.textContent = done ? (done + ' photo' + (done > 1 ? 's' : '') + ' uploaded ✓ — ' + Math.round(newBytes/1024) + ' KB (' + saved + '% smaller)') : '';
       if (done) toast(done + ' photo' + (done > 1 ? 's' : '') + ' optimized & uploaded', 'ok');

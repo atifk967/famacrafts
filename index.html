@@ -4,6 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Famacrafts — Handmade, with love</title>
+
+  <!-- Favicon / app icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+
+  <!-- Speed up product-image loads from Supabase storage -->
+  <link rel="preconnect" href="https://gggiojhvkpatmakkgkuq.supabase.co" crossorigin />
+
   <meta name="description" content="Handmade flower boxes, gift baskets, pressed-flower cards, and workshop kits — crafted with care in Lahore. Order on WhatsApp." />
 
   <!-- Open Graph -->
@@ -267,6 +276,16 @@
       }
 
       // Carousel: wire arrow/dot nav (delegated) and keep dots in sync on scroll
+      // Load a carousel's deferred slides (data-src → src) once, on first intent.
+      function hydrateCarousel(c) {
+        if (!c || c.dataset.hydrated) { return; }
+        c.dataset.hydrated = '1';
+        var pending = c.querySelectorAll('.carousel-slide[data-src]');
+        Array.prototype.forEach.call(pending, function (s) {
+          s.src = s.getAttribute('data-src');
+          s.removeAttribute('data-src');
+        });
+      }
       function initCarousels(container) {
         var carousels = container.querySelectorAll('.carousel[data-count]');
         Array.prototype.forEach.call(carousels, function (c) {
@@ -274,7 +293,12 @@
           var track = c.querySelector('.carousel-track');
           var dots  = c.querySelectorAll('.carousel-dot');
           if (!track || !dots.length) { return; }
+          // hydrate as soon as the user shows intent to browse the other photos
+          ['pointerdown', 'touchstart', 'mouseenter'].forEach(function (ev) {
+            c.addEventListener(ev, function () { hydrateCarousel(c); }, { passive: true, once: true });
+          });
           track.addEventListener('scroll', function () {
+            hydrateCarousel(c);
             var idx = Math.round(track.scrollLeft / track.clientWidth);
             Array.prototype.forEach.call(dots, function (d, i) {
               d.classList.toggle('active', i === idx);
@@ -382,11 +406,15 @@
             html += '<div class="carousel" data-count="' + imgs.length + '">';
             html += '<div class="carousel-track">';
             imgs.forEach(function (u, idx) {
+              var src800 = esc(imgSrc(u, 800));
+              // Only the first slide loads up front; the rest hold their URL in
+              // data-src and hydrate on first interaction (swipe/hover/arrow).
               html += '<img class="carousel-slide"'
-                + ' src="' + esc(imgSrc(u, 800)) + '"'
+                + (idx === 0 ? ' src="' + src800 + '"' : ' data-src="' + src800 + '"')
                 + ' data-full="' + esc(imgSrc(u, 1600)) + '"'
                 + ' alt="' + esc(p.name) + (imgs.length > 1 ? ' — photo ' + (idx + 1) + ' of ' + imgs.length : '') + '"'
-                + ((isFirst && idx === 0) ? ' loading="eager"' : ' loading="lazy"')
+                + ' decoding="async"'
+                + (idx === 0 ? (isFirst ? ' loading="eager"' : ' loading="lazy"') : '')
                 + ' onerror="this.classList.add(\'slide-failed\')"'
                 + ' />';
             });
@@ -489,14 +517,16 @@
           // Carousel arrows
           var nav = e.target.closest('.carousel-nav');
           if (nav) {
-            var track = nav.closest('.carousel').querySelector('.carousel-track');
+            var navCar = nav.closest('.carousel'); hydrateCarousel(navCar);
+            var track = navCar.querySelector('.carousel-track');
             track.scrollBy({ left: nav.classList.contains('next') ? track.clientWidth : -track.clientWidth, behavior: 'smooth' });
             return;
           }
           // Carousel dots → jump to that image
           var dot = e.target.closest('.carousel-dot');
           if (dot) {
-            var t = dot.closest('.carousel').querySelector('.carousel-track');
+            var dotCar = dot.closest('.carousel'); hydrateCarousel(dotCar);
+            var t = dotCar.querySelector('.carousel-track');
             t.scrollTo({ left: t.clientWidth * (parseInt(dot.getAttribute('data-idx'), 10) || 0), behavior: 'smooth' });
             return;
           }
