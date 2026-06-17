@@ -352,6 +352,8 @@
       align-items: center;
       transition: box-shadow 0.2s, transform 0.2s;
       overflow: hidden;
+      /* when opened via a #product-<id> link, sit just below the sticky nav */
+      scroll-margin-top: 72px;
       /* skip layout/paint for off-screen cards — keeps a long catalog smooth.
          contain-intrinsic-size reserves space so the scrollbar stays stable. */
       content-visibility: auto;

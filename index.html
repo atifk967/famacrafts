@@ -305,7 +305,9 @@
       // Deep link back to a specific product card (so the customer's WhatsApp
       // message tells Famacrafts exactly which product they're asking about)
       function productLink(pid) {
-        return location.origin + location.pathname + '#product-' + pid;
+        // always link to the full catalog page (the homepage only shows a few),
+        // so shared/WhatsApp links always land on a page that has the product
+        return location.origin + '/catalog.html#product-' + pid;
       }
 
       function waUrl(productName, link) {
@@ -351,7 +353,15 @@
         if (location.hash.indexOf('#product-') !== 0) { return; }
         var el = document.getElementById(location.hash.slice(1));
         if (!el) { return; }
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Re-scroll each frame until the target holds steady — off-screen cards
+        // render in as we approach, so a single jump can land misaligned.
+        var lastTop = null, stable = 0, tries = 0;
+        (function settle() {
+          el.scrollIntoView({ block: 'start' });
+          var top = Math.round(el.getBoundingClientRect().top);
+          if (top === lastTop) { stable++; } else { stable = 0; lastTop = top; }
+          if (stable < 3 && ++tries < 40) { requestAnimationFrame(settle); }
+        })();
         el.classList.add('product-highlight');
         setTimeout(function () { el.classList.remove('product-highlight'); }, 2400);
       }
@@ -484,6 +494,7 @@
           html += '<a class="btn" href="' + esc(waUrl(p.name, productLink(pid))) + '" target="_blank" rel="noopener">';
           html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.103 1.518 5.83L0 24l6.335-1.492A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.017-1.374l-.36-.214-3.727.977.998-3.645-.234-.374A9.818 9.818 0 0112 2.182c5.425 0 9.818 4.393 9.818 9.818 0 5.426-4.393 9.818-9.818 9.818z"/></svg>';
           html += 'Order on WhatsApp</a>';
+          html += '<button class="btn ghost share-btn" type="button" data-share-url="' + esc(productLink(pid)) + '" data-share-title="' + esc(p.name) + '">Share</button>';
           if (p.description) {
             html += '<button class="btn ghost read-more-btn" type="button" data-target="product-' + esc(pid) + '">Read more</button>';
           }
@@ -576,6 +587,22 @@
             var urls = Array.prototype.map.call(allSlides, function (s) { return s.getAttribute('data-full') || s.src; });
             var idx = Array.prototype.indexOf.call(allSlides, slide);
             openLightbox(urls, idx < 0 ? 0 : idx);
+            return;
+          }
+          // Share → native share sheet on mobile, copy-to-clipboard otherwise
+          var share = e.target.closest('.share-btn');
+          if (share) {
+            var sUrl = share.getAttribute('data-share-url');
+            var sTitle = share.getAttribute('data-share-title') || 'Famacrafts';
+            if (navigator.share) {
+              navigator.share({ title: sTitle, url: sUrl }).catch(function () {});
+            } else if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(sUrl).then(function () {
+                var prev = share.textContent;
+                share.textContent = 'Link copied ✓';
+                setTimeout(function () { share.textContent = prev; }, 1800);
+              });
+            }
             return;
           }
           // Read more
