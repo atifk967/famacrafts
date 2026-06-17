@@ -14,9 +14,21 @@
   <link rel="preconnect" href="https://gggiojhvkpatmakkgkuq.supabase.co" crossorigin />
 
   <meta name="description" content="Browse the full Famacrafts catalog — handmade flower boxes, gift baskets, pressed-flower cards, keepsakes and more. Search and filter, then order on WhatsApp." />
+  <link rel="canonical" href="https://famacrafts.pk/catalog.html" />
   <meta property="og:title" content="Catalog — Famacrafts" />
   <meta property="og:description" content="Browse the full Famacrafts catalog. Search, filter, and order on WhatsApp." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://famacrafts.pk/catalog.html" />
+  <meta property="og:site_name" content="Famacrafts" />
+  <meta property="og:locale" content="en_PK" />
+  <meta property="og:image" content="https://famacrafts.pk/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Catalog — Famacrafts" />
+  <meta name="twitter:description" content="Browse the full Famacrafts catalog. Search, filter, and order on WhatsApp." />
+  <meta name="twitter:image" content="https://famacrafts.pk/assets/og-image.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -494,11 +506,36 @@
         });
       }
 
+      // Emit an ItemList of products as JSON-LD so search engines can read the
+      // catalog as structured data (built from the loaded product set).
+      function injectProductJsonLd(list) {
+        if (!list || !list.length) { return; }
+        var items = list.slice(0, 100).map(function (p, i) {
+          var imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
+          var img = imgs[0] || p.image_url || p.image || '';
+          var prod = {
+            "@type": "Product",
+            "name": p.name,
+            "url": "https://famacrafts.pk/catalog.html#product-" + (p.id || ('p' + i)),
+            "brand": { "@type": "Brand", "name": "Famacrafts" }
+          };
+          if (p.category) { prod.category = p.category; }
+          if (p.description || p.tagline) { prod.description = p.description || p.tagline; }
+          if (img) { prod.image = img; }
+          return { "@type": "ListItem", "position": i + 1, "item": prod };
+        });
+        var data = { "@context": "https://schema.org", "@type": "ItemList", "itemListElement": items };
+        var s = document.getElementById('catalog-jsonld');
+        if (!s) { s = document.createElement('script'); s.type = 'application/ld+json'; s.id = 'catalog-jsonld'; document.head.appendChild(s); }
+        s.textContent = JSON.stringify(data);
+      }
+
       // ── Boot ──────────────────────────────────────────────
       function start(products) {
         allProducts = (products || []).map(function (p) { p._search = indexOf(p); return p; });
         renderChips();
         applyFilter();
+        injectProductJsonLd(allProducts);
       }
       async function boot() {
         wireStatic();
