@@ -305,9 +305,8 @@
       // Deep link back to a specific product card (so the customer's WhatsApp
       // message tells Famacrafts exactly which product they're asking about)
       function productLink(pid) {
-        // always link to the full catalog page (the homepage only shows a few),
-        // so shared/WhatsApp links always land on a page that has the product
-        return location.origin + '/catalog.html#product-' + pid;
+        // each product has its own page — shared/WhatsApp links open straight to it
+        return location.origin + '/product.html?id=' + encodeURIComponent(pid);
       }
 
       function waUrl(productName, link) {

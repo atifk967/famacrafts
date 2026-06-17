@@ -227,9 +227,8 @@
 
       // ── Helpers (shared behaviour with the homepage) ──────
       function productLink(pid) {
-        // always link to the full catalog page (it has every product), never the
-        // homepage teaser — so shared/WhatsApp links always find the product
-        return location.origin + '/catalog.html#product-' + pid;
+        // each product has its own page — shared/WhatsApp links open straight to it
+        return location.origin + '/product.html?id=' + encodeURIComponent(pid);
       }
       function waUrl(productName, link) {
         var tmpl = D.whatsappTemplate || "Hi Famacrafts! I'm interested in {PRODUCT}.";
@@ -571,7 +570,7 @@
           var prod = {
             "@type": "Product",
             "name": p.name,
-            "url": "https://famacrafts.pk/catalog.html#product-" + (p.id || ('p' + i)),
+            "url": "https://famacrafts.pk/product.html?id=" + encodeURIComponent(p.id || ('p' + i)),
             "brand": { "@type": "Brand", "name": "Famacrafts" }
           };
           if (p.category) { prod.category = p.category; }
