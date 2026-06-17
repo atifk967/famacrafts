@@ -357,22 +357,39 @@
         // stops moving (off-screen cards above render in / fonts swap after the
         // first jump, shifting layout) — re-measure the real gap each frame and
         // nudge by exactly that until steady, or the user takes over.
-        var NAV = 72, active = true, stable = 0, tries = 0;
-        function stopAlign() { active = false; }
-        ['wheel', 'touchstart', 'keydown'].forEach(function (ev) {
-          window.addEventListener(ev, stopAlign, { passive: true });
-        });
-        function endAlign() {
-          ['wheel', 'touchstart', 'keydown'].forEach(function (ev) { window.removeEventListener(ev, stopAlign); });
+        var NAV = 72, released = false;
+        function cleanup() {
+          window.removeEventListener('wheel', release);
+          window.removeEventListener('touchmove', release);
+          window.removeEventListener('keydown', release);
         }
-        (function align() {
-          if (!active) { return endAlign(); }
+        function release() { released = true; cleanup(); }
+        // a plain tap fires touchstart constantly on phones — only hand control
+        // back on a real scroll gesture (drag / wheel / keys), never a tap
+        window.addEventListener('wheel', release, { passive: true });
+        window.addEventListener('touchmove', release, { passive: true });
+        window.addEventListener('keydown', release, { passive: true });
+        function align() {
+          if (released) { return; }
+          var delta = el.getBoundingClientRect().top - NAV;
+          if (Math.abs(delta) > 1) { window.scrollBy(0, delta); }
+        }
+        var stable = 0, tries = 0;
+        (function loop() {
+          if (released) { return; }
           var delta = el.getBoundingClientRect().top - NAV;
           if (Math.abs(delta) > 1) { window.scrollBy(0, delta); stable = 0; }
           else { stable++; }
-          if (stable < 6 && ++tries < 180) { requestAnimationFrame(align); }
-          else { endAlign(); }
+          if (stable < 8 && ++tries < 180) { requestAnimationFrame(loop); }
         })();
+        // re-correct after the late shifts that hit mobile hardest: the web-font
+        // swap and the first images decoding both land after the initial scroll
+        if (document.fonts && document.fonts.ready) { document.fonts.ready.then(align); }
+        window.addEventListener('load', align, { once: true });
+        setTimeout(align, 400);
+        setTimeout(align, 1000);
+        setTimeout(align, 2000);
+        setTimeout(cleanup, 4000);
         el.classList.add('product-highlight');
         setTimeout(function () { el.classList.remove('product-highlight'); }, 2400);
       }
