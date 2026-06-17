@@ -354,10 +354,6 @@
       overflow: hidden;
       /* when opened via a #product-<id> link, sit just below the sticky nav */
       scroll-margin-top: 72px;
-      /* skip layout/paint for off-screen cards — keeps a long catalog smooth.
-         contain-intrinsic-size reserves space so the scrollbar stays stable. */
-      content-visibility: auto;
-      contain-intrinsic-size: auto 620px;
     }
     @media (min-width: 720px) {
       .product { padding: 32px; gap: 36px; grid-template-columns: 46% 1fr; }
