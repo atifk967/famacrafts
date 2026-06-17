@@ -353,14 +353,25 @@
         if (location.hash.indexOf('#product-') !== 0) { return; }
         var el = document.getElementById(location.hash.slice(1));
         if (!el) { return; }
-        // Re-scroll each frame until the target holds steady — off-screen cards
-        // render in as we approach, so a single jump can land misaligned.
-        var lastTop = null, stable = 0, tries = 0;
-        (function settle() {
-          el.scrollIntoView({ block: 'start' });
-          var top = Math.round(el.getBoundingClientRect().top);
-          if (top === lastTop) { stable++; } else { stable = 0; lastTop = top; }
-          if (stable < 3 && ++tries < 40) { requestAnimationFrame(settle); }
+        // Correct the scroll until the card actually sits at the nav offset and
+        // stops moving (off-screen cards above render in / fonts swap after the
+        // first jump, shifting layout) — re-measure the real gap each frame and
+        // nudge by exactly that until steady, or the user takes over.
+        var NAV = 72, active = true, stable = 0, tries = 0;
+        function stopAlign() { active = false; }
+        ['wheel', 'touchstart', 'keydown'].forEach(function (ev) {
+          window.addEventListener(ev, stopAlign, { passive: true });
+        });
+        function endAlign() {
+          ['wheel', 'touchstart', 'keydown'].forEach(function (ev) { window.removeEventListener(ev, stopAlign); });
+        }
+        (function align() {
+          if (!active) { return endAlign(); }
+          var delta = el.getBoundingClientRect().top - NAV;
+          if (Math.abs(delta) > 1) { window.scrollBy(0, delta); stable = 0; }
+          else { stable++; }
+          if (stable < 6 && ++tries < 180) { requestAnimationFrame(align); }
+          else { endAlign(); }
         })();
         el.classList.add('product-highlight');
         setTimeout(function () { el.classList.remove('product-highlight'); }, 2400);
