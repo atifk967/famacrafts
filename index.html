@@ -541,6 +541,13 @@
           workshopsGrid.innerHTML = '<p class="empty-state">No upcoming workshops — follow us on Instagram for announcements.</p>';
           return;
         }
+        // Pinned workshops first. Sorted here rather than in the query so the
+        // page still works if the `featured` column hasn't been migrated yet;
+        // JS sort is stable, so display_order is preserved within each group.
+        workshops = workshops.slice().sort(function (a, b) {
+          return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+        });
+
         var whtml = '';
         workshops.forEach(function (w) {
           // Normalise field names (Supabase: date_label/time_label; products.js: date/time)

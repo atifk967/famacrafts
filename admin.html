@@ -744,6 +744,15 @@
           <input type="text" id="wm-cta" placeholder="Reserve my seat" />
         </div>
 
+        <!-- Pin (hidden until the workshops table has the featured column) -->
+        <div class="checkbox-row" id="wm-pin-row">
+          <input type="checkbox" id="wm-featured" />
+          <label for="wm-featured">
+            Pin to top
+            <small>Show this workshop above the others</small>
+          </label>
+        </div>
+
         <div class="checkbox-row">
           <input type="checkbox" id="wm-active" checked />
           <label for="wm-active">
@@ -1403,6 +1412,7 @@
               + '<span>' + esc(w.date_label || 'No date') + '</span>'
               + (w.time_label ? '<span>' + esc(w.time_label) + '</span>' : '')
               + '<span class="badge ' + (w.active ? 'on' : 'off') + '">' + (w.active ? 'Active' : 'Hidden') + '</span>'
+              + (w.featured ? '<span class="badge star">Pinned</span>' : '')
             + '</div>'
             + (w.location ? '<div class="item-info-tagline">📍 ' + esc(w.location) + '</div>' : '')
           + '</div>'
@@ -1420,16 +1430,23 @@
     var wmImages = [];
     var wmSessionUploads = [];   // uploaded this session (for orphan cleanup)
 
-    // The workshops table only gets image columns once the 20260617 migration is
-    // run. Until then we hide the photo UI and never send those fields, so
-    // saving a workshop keeps working on an un-migrated database.
+    // The workshops table only gains the image + featured columns once the
+    // 20260617 migrations are run. Until then we hide those controls and never
+    // send those fields, so saving a workshop keeps working on an un-migrated
+    // database. Each is probed separately so one can land before the other.
     var workshopImagesOk = false;
+    var workshopPinOk = false;
     async function detectWorkshopImages() {
       if (!sb) { return; }
-      var res = await sb.from('workshops').select('image_url,images').limit(1);
-      workshopImagesOk = !res.error;
+      var imgRes = await sb.from('workshops').select('image_url,images').limit(1);
+      workshopImagesOk = !imgRes.error;
       var field = document.getElementById('wm-photo-field');
       if (field) { field.style.display = workshopImagesOk ? '' : 'none'; }
+
+      var pinRes = await sb.from('workshops').select('featured').limit(1);
+      workshopPinOk = !pinRes.error;
+      var pinRow = document.getElementById('wm-pin-row');
+      if (pinRow) { pinRow.style.display = workshopPinOk ? '' : 'none'; }
     }
 
     function renderWmThumbs() {
@@ -1514,10 +1531,12 @@
         document.getElementById('wm-desc').value                = w.description || '';
         document.getElementById('wm-cta').value                 = w.cta_label   || '';
         document.getElementById('wm-active').checked            = w.active !== false;
+        document.getElementById('wm-featured').checked          = !!w.featured;
       } else {
         document.getElementById('wm-title').textContent = 'Add Workshop';
         document.getElementById('wm-id').value = '';
         document.getElementById('wm-active').checked = true;
+        document.getElementById('wm-featured').checked = false;
       }
       document.getElementById('workshop-modal').classList.add('open');
       setTimeout(function () { document.getElementById('wm-title-input').focus(); }, 80);
@@ -1554,10 +1573,13 @@
         cta_label:   document.getElementById('wm-cta').value.trim() || 'Reserve my seat',
         active:      document.getElementById('wm-active').checked,
       };
-      // only send image fields if the migration that adds them has been run
+      // only send fields whose migration has actually been run
       if (workshopImagesOk) {
         payload.images    = wmImages.slice();
         payload.image_url = wmImages[0] || '';
+      }
+      if (workshopPinOk) {
+        payload.featured = document.getElementById('wm-featured').checked;
       }
 
       // photos that were dropped during this edit should be freed from storage
