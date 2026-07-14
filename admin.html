@@ -707,6 +707,18 @@
       <form id="workshop-form" novalidate>
         <input type="hidden" id="wm-id" />
 
+        <!-- Photo (hidden until the workshops table has the image columns) -->
+        <div class="field" id="wm-photo-field">
+          <label>Photo</label>
+          <div class="img-preview" id="wm-img-preview">No photo yet</div>
+          <label for="wm-file" class="upload-label">↑ Upload photo(s) from device</label>
+          <input type="file" id="wm-file" accept="image/*" multiple style="display:none" />
+          <div class="upload-status" id="wm-upload-status"></div>
+          <div class="upload-or">— or paste an image URL and press Enter —</div>
+          <input type="url" id="wm-img-url" placeholder="https://…" />
+          <div class="upload-or" style="margin-top:4px;font-size:9px">First image is the cover. Remove with ✕ and re-add to reorder.</div>
+        </div>
+
         <div class="field">
           <label for="wm-title-input">Workshop Title *</label>
           <input type="text" id="wm-title-input" required placeholder="e.g. Bloom Together" style="font-style:italic;" />
@@ -1127,6 +1139,49 @@
       if (paths.length) { try { await sb.storage.from('product-images').remove(paths); } catch (e) {} }
     }
 
+    // ── Shared uploader (used by both the product and workshop modals) ──
+    // Compresses + uploads several photos at once (limited concurrency) and
+    // returns their public URLs in the caller's original file order.
+    async function uploadImageFiles(files, statusEl) {
+      var origBytes = 0, newBytes = 0, finished = 0;
+      var results = new Array(files.length);
+
+      async function processOne(file, i) {
+        try {
+          var c = await compressImage(file);
+          origBytes += file.size; newBytes += (c.blob.size || file.size);
+          var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + c.ext;
+          var up = await sb.storage.from('product-images').upload(path, c.blob, {
+            contentType: c.type, upsert: false, cacheControl: '31536000'  // 1yr immutable → fewer egress hits
+          });
+          if (up.error) { toast('Upload failed: ' + file.name, 'err'); return; }
+          results[i] = sb.storage.from('product-images').getPublicUrl(up.data.path).data.publicUrl;
+        } catch (err) {
+          toast('Upload failed: ' + file.name, 'err');
+        } finally {
+          finished++;
+          if (statusEl) { statusEl.textContent = 'Uploading ' + finished + ' of ' + files.length + '…'; }
+        }
+      }
+
+      if (statusEl) { statusEl.textContent = 'Uploading 0 of ' + files.length + '…'; }
+      var CONCURRENCY = 4, cursor = 0;
+      async function worker() {
+        while (cursor < files.length) { var idx = cursor++; await processOne(files[idx], idx); }
+      }
+      var pool = [];
+      for (var w = 0; w < Math.min(CONCURRENCY, files.length); w++) { pool.push(worker()); }
+      await Promise.all(pool);
+      return { results: results, origBytes: origBytes, newBytes: newBytes };
+    }
+    function uploadSummary(statusEl, done, origBytes, newBytes) {
+      var saved = origBytes > 0 ? Math.round((1 - newBytes / origBytes) * 100) : 0;
+      statusEl.textContent = done
+        ? (done + ' photo' + (done > 1 ? 's' : '') + ' uploaded ✓ — ' + Math.round(newBytes / 1024) + ' KB (' + saved + '% smaller)')
+        : '';
+      if (done) { toast(done + ' photo' + (done > 1 ? 's' : '') + ' optimized & uploaded', 'ok'); }
+    }
+
     function renderThumbs() {
       var prev = document.getElementById('pm-img-preview');
       if (!pmImages.length) {
@@ -1225,50 +1280,16 @@
       var files = Array.prototype.slice.call(this.files);
       if (!files.length || !sb) return;
       var status = document.getElementById('pm-upload-status');
-      var origBytes = 0, newBytes = 0, finished = 0;
-      var results = new Array(files.length);   // keep original selection order
-
-      // compress + upload a single file → stash its public URL at index i
-      async function processOne(file, i) {
-        try {
-          var c = await compressImage(file);
-          origBytes += file.size; newBytes += (c.blob.size || file.size);
-          var path = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + c.ext;
-          var up = await sb.storage.from('product-images').upload(path, c.blob, {
-            contentType: c.type, upsert: false, cacheControl: '31536000'  // 1yr immutable → fewer egress hits
-          });
-          if (up.error) { toast('Upload failed: ' + file.name, 'err'); return; }
-          results[i] = sb.storage.from('product-images').getPublicUrl(up.data.path).data.publicUrl;
-        } catch (err) {
-          toast('Upload failed: ' + file.name, 'err');
-        } finally {
-          finished++;
-          status.textContent = 'Uploading ' + finished + ' of ' + files.length + '…';
-        }
-      }
-
-      // upload several photos at once (limited concurrency) instead of one-by-one
-      status.textContent = 'Uploading 0 of ' + files.length + '…';
-      var CONCURRENCY = 4, cursor = 0;
-      async function worker() {
-        while (cursor < files.length) { var idx = cursor++; await processOne(files[idx], idx); }
-      }
-      var pool = [];
-      for (var w = 0; w < Math.min(CONCURRENCY, files.length); w++) { pool.push(worker()); }
-      await Promise.all(pool);
-
+      var out = await uploadImageFiles(files, status);
       var done = 0;
-      results.forEach(function (url) {
+      out.results.forEach(function (url) {
         if (!url) { return; }
         pmImages.push(url);
         pmSessionUploads.push(url);
         done++;
       });
       renderThumbs();
-
-      var saved = origBytes > 0 ? Math.round((1 - newBytes / origBytes) * 100) : 0;
-      status.textContent = done ? (done + ' photo' + (done > 1 ? 's' : '') + ' uploaded ✓ — ' + Math.round(newBytes/1024) + ' KB (' + saved + '% smaller)') : '';
-      if (done) toast(done + ' photo' + (done > 1 ? 's' : '') + ' optimized & uploaded', 'ok');
+      uploadSummary(status, done, out.origBytes, out.newBytes);
       this.value = ''; // allow re-selecting the same file(s) again
     });
 
@@ -1349,6 +1370,7 @@
     async function loadWorkshops() {
       if (!sb) return;
       document.getElementById('workshops-container').innerHTML = '<div class="state-loading">Loading…</div>';
+      await detectWorkshopImages();   // show the photo UI only if the columns exist
       var { data, error } = await sb.from('workshops').select('*')
         .order('display_order', { ascending: true  })
         .order('created_at',    { ascending: false });
@@ -1370,8 +1392,11 @@
       }
       var h = '<div class="item-list">';
       workshops.forEach(function (w) {
+        var cover = (Array.isArray(w.images) && w.images.length) ? w.images[0] : (w.image_url || '');
         h += '<div class="list-item" id="li-w-' + esc(w.id) + '">'
-          + '<div class="item-thumb mint">🌱</div>'
+          + (cover
+              ? '<div class="item-thumb"><img src="' + esc(cover) + '" alt="" loading="lazy" /></div>'
+              : '<div class="item-thumb mint">🌱</div>')
           + '<div>'
             + '<div class="item-info-name">' + esc(w.title) + '</div>'
             + '<div class="item-info-meta">'
@@ -1391,11 +1416,95 @@
       el.innerHTML = h;
     }
 
+    // ── Workshop photos (mirrors the product modal) ───────────
+    var wmImages = [];
+    var wmSessionUploads = [];   // uploaded this session (for orphan cleanup)
+
+    // The workshops table only gets image columns once the 20260617 migration is
+    // run. Until then we hide the photo UI and never send those fields, so
+    // saving a workshop keeps working on an un-migrated database.
+    var workshopImagesOk = false;
+    async function detectWorkshopImages() {
+      if (!sb) { return; }
+      var res = await sb.from('workshops').select('image_url,images').limit(1);
+      workshopImagesOk = !res.error;
+      var field = document.getElementById('wm-photo-field');
+      if (field) { field.style.display = workshopImagesOk ? '' : 'none'; }
+    }
+
+    function renderWmThumbs() {
+      var prev = document.getElementById('wm-img-preview');
+      if (!wmImages.length) {
+        prev.className = 'img-preview';
+        prev.textContent = 'No photo yet';
+        return;
+      }
+      prev.className = 'img-preview has-thumbs';
+      var h = '';
+      wmImages.forEach(function (url, i) {
+        h += '<div class="img-thumb">'
+           + '<img src="' + esc(url) + '" alt="" />'
+           + '<button type="button" class="thumb-x" data-idx="' + i + '" aria-label="Remove image">✕</button>'
+           + (i === 0 ? '<span class="thumb-primary">COVER</span>' : '')
+           + '</div>';
+      });
+      prev.innerHTML = h;
+    }
+    document.getElementById('wm-img-preview').addEventListener('click', function (e) {
+      var x = e.target.closest('.thumb-x');
+      if (!x) return;
+      var idx = parseInt(x.getAttribute('data-idx'), 10);
+      var url = wmImages[idx];
+      wmImages.splice(idx, 1);
+      var si = wmSessionUploads.indexOf(url);
+      if (si >= 0) { wmSessionUploads.splice(si, 1); removeStorageObjects([url]); }
+      renderWmThumbs();
+    });
+    function wmAddUrl() {
+      var inp = document.getElementById('wm-img-url');
+      var val = inp.value.trim();
+      if (!val) return;
+      wmImages.push(val);
+      inp.value = '';
+      renderWmThumbs();
+    }
+    document.getElementById('wm-img-url').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); wmAddUrl(); }
+    });
+    document.getElementById('wm-img-url').addEventListener('change', wmAddUrl);
+
+    document.getElementById('wm-file').addEventListener('change', async function () {
+      var files = Array.prototype.slice.call(this.files);
+      if (!files.length || !sb) return;
+      var status = document.getElementById('wm-upload-status');
+      var out = await uploadImageFiles(files, status);
+      var done = 0;
+      out.results.forEach(function (url) {
+        if (!url) { return; }
+        wmImages.push(url);
+        wmSessionUploads.push(url);
+        done++;
+      });
+      renderWmThumbs();
+      uploadSummary(status, done, out.origBytes, out.newBytes);
+      this.value = '';
+    });
+
     function openWorkshopModal(id) {
       document.getElementById('workshop-form').reset();
+      wmImages = [];
+      wmSessionUploads = [];
+      renderWmThumbs();
+      document.getElementById('wm-upload-status').textContent = '';
       if (id) {
         var w = workshops.find(function (x) { return x.id === id; });
         if (!w) return;
+        if (Array.isArray(w.images) && w.images.length) {
+          wmImages = w.images.filter(function (u) { return u && String(u).trim(); });
+        } else if (w.image_url) {
+          wmImages = [w.image_url];
+        }
+        renderWmThumbs();
         document.getElementById('wm-title').textContent         = 'Edit Workshop';
         document.getElementById('wm-id').value                  = w.id;
         document.getElementById('wm-title-input').value         = w.title       || '';
@@ -1414,7 +1523,11 @@
       setTimeout(function () { document.getElementById('wm-title-input').focus(); }, 80);
     }
 
-    function closeWorkshopModal() { document.getElementById('workshop-modal').classList.remove('open'); }
+    function closeWorkshopModal() {
+      // free any photos uploaded this session but never saved (orphans)
+      if (wmSessionUploads.length) { removeStorageObjects(wmSessionUploads.slice()); wmSessionUploads = []; }
+      document.getElementById('workshop-modal').classList.remove('open');
+    }
 
     document.getElementById('new-workshop-btn').addEventListener('click', function () { openWorkshopModal(); });
     document.getElementById('wm-close').addEventListener('click', closeWorkshopModal);
@@ -1441,6 +1554,21 @@
         cta_label:   document.getElementById('wm-cta').value.trim() || 'Reserve my seat',
         active:      document.getElementById('wm-active').checked,
       };
+      // only send image fields if the migration that adds them has been run
+      if (workshopImagesOk) {
+        payload.images    = wmImages.slice();
+        payload.image_url = wmImages[0] || '';
+      }
+
+      // photos that were dropped during this edit should be freed from storage
+      var removedImages = [];
+      if (workshopImagesOk && id) {
+        var origW = workshops.find(function (x) { return x.id === id; });
+        var origImgs = origW
+          ? ((Array.isArray(origW.images) && origW.images.length) ? origW.images : (origW.image_url ? [origW.image_url] : []))
+          : [];
+        removedImages = origImgs.filter(function (u) { return wmImages.indexOf(u) === -1; });
+      }
 
       var error = id
         ? (await sb.from('workshops').update(payload).eq('id', id)).error
@@ -1452,6 +1580,9 @@
       if (error) {
         toast(writeErr(error), 'err');
       } else {
+        // free storage for photos removed from this workshop during the edit
+        if (removedImages.length) { removeStorageObjects(removedImages); }
+        wmSessionUploads = [];   // uploads are now persisted — don't treat as orphans
         toast(id ? 'Workshop updated ✓' : 'Workshop added ✓', 'ok');
         closeWorkshopModal();
         await loadWorkshops();
@@ -1460,8 +1591,11 @@
 
     async function delWorkshop(id, title) {
       if (!confirm('Delete "' + title + '"?\n\nThis cannot be undone.')) return;
+      var w = workshops.find(function (x) { return x.id === id; });
+      var imgs = w ? ((Array.isArray(w.images) && w.images.length) ? w.images : (w.image_url ? [w.image_url] : [])) : [];
       var { error } = await sb.from('workshops').delete().eq('id', id);
       if (error) { toast(writeErr(error), 'err'); return; }
+      await removeStorageObjects(imgs);   // free the deleted workshop's photos
       toast('Deleted', 'ok');
       await loadWorkshops();
     }

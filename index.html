@@ -546,7 +546,39 @@
           // Normalise field names (Supabase: date_label/time_label; products.js: date/time)
           var dateLabel = w.date_label || w.date || '';
           var timeLabel = w.time_label || w.time || '';
+          var wimgs = [];
+          if (Array.isArray(w.images)) { wimgs = w.images.filter(function (u) { return u && String(u).trim(); }); }
+          if (!wimgs.length && w.image_url) { wimgs = [w.image_url]; }
+
           whtml += '<article class="workshop-card">';
+          // Photos (same carousel + lightbox as products; only if the workshop has any)
+          if (wimgs.length) {
+            whtml += '<div class="workshop-img-wrap">';
+            whtml += '<div class="carousel" data-count="' + wimgs.length + '">';
+            whtml += '<div class="carousel-track">';
+            wimgs.forEach(function (u, idx) {
+              var wsrc = esc(imgSrc(u, 800));
+              whtml += '<img class="carousel-slide"'
+                + (idx === 0 ? ' src="' + wsrc + '"' : ' data-src="' + wsrc + '"')
+                + ' data-full="' + esc(imgSrc(u, 1600)) + '"'
+                + ' alt="' + esc(w.title) + (wimgs.length > 1 ? ' — photo ' + (idx + 1) + ' of ' + wimgs.length : '') + '"'
+                + ' decoding="async"'
+                + (idx === 0 ? ' loading="lazy"' : '')
+                + ' onerror="this.classList.add(\'slide-failed\')"'
+                + ' />';
+            });
+            whtml += '</div>';
+            if (wimgs.length > 1) {
+              whtml += '<button type="button" class="carousel-nav prev" aria-label="Previous image">‹</button>';
+              whtml += '<button type="button" class="carousel-nav next" aria-label="Next image">›</button>';
+              whtml += '<div class="carousel-dots">';
+              wimgs.forEach(function (u, idx) {
+                whtml += '<span class="carousel-dot' + (idx === 0 ? ' active' : '') + '" data-idx="' + idx + '"></span>';
+              });
+              whtml += '</div>';
+            }
+            whtml += '</div></div>';
+          }
           whtml += '<p class="workshop-date">' + esc(dateLabel) + '</p>';
           whtml += '<h3 class="workshop-title">' + esc(w.title) + '</h3>';
           whtml += '<p class="workshop-desc">' + esc(w.description) + '</p>';
@@ -566,6 +598,7 @@
           whtml += '</article>';
         });
         workshopsGrid.innerHTML = whtml;
+        initCarousels(workshopsGrid);
       }
 
       // ── Wire static parts (footer, FAB, nav) ──────────────
@@ -590,7 +623,9 @@
         document.querySelectorAll('.nav-link').forEach(function (l) { l.addEventListener('click', closeMenu); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) closeMenu(); });
 
-        document.getElementById('catalog-grid').addEventListener('click', function (e) {
+        // One handler drives both the product grid and the workshop cards —
+        // carousel arrows/dots, tap-to-zoom lightbox, share, read-more.
+        function gridClick(e) {
           // Carousel arrows
           var nav = e.target.closest('.carousel-nav');
           if (nav) {
@@ -638,7 +673,9 @@
           var card = document.getElementById(btn.dataset.target);
           if (!card) return;
           btn.textContent = card.classList.toggle('expanded') ? 'Less' : 'Read more';
-        });
+        }
+        document.getElementById('catalog-grid').addEventListener('click', gridClick);
+        document.getElementById('workshops-grid').addEventListener('click', gridClick);
 
         document.getElementById('customForm').addEventListener('submit', function (e) {
           e.preventDefault();
