@@ -152,6 +152,13 @@
       </div>
     </section>
 
+    <!-- ── Pinned upcoming workshop (JS-populated; hidden if none) ─ -->
+    <section class="wh" id="workshop-highlight" hidden aria-label="Featured upcoming workshop">
+      <div class="container">
+        <div class="wh-card" id="wh-card"><!-- built by JS --></div>
+      </div>
+    </section>
+
     <!-- ── About ──────────────────────────────────────────────── -->
     <section class="about" id="about" aria-labelledby="about-heading">
 
@@ -201,7 +208,13 @@
           <p>Guided, hands-on workshops in Lahore. All materials included. All skill levels welcome.</p>
         </div>
         <div class="workshops-grid" id="workshops-grid">
-          <!-- Populated by JS -->
+          <!-- Populated by JS: upcoming -->
+        </div>
+
+        <!-- Previous workshops (JS-populated; hidden when there are none) -->
+        <div class="past-workshops" id="past-workshops" hidden>
+          <h3 class="past-workshops-head">Previous workshops</h3>
+          <div class="workshops-grid" id="past-workshops-grid"><!-- built by JS --></div>
         </div>
       </div>
     </section>
@@ -535,29 +548,29 @@
       }
 
       // ── Render workshops ──────────────────────────────────
-      function renderWorkshops(workshops) {
-        var workshopsGrid = document.getElementById('workshops-grid');
-        if (!workshops || workshops.length === 0) {
-          workshopsGrid.innerHTML = '<p class="empty-state">No upcoming workshops — follow us on Instagram for announcements.</p>';
-          return;
-        }
-        // Pinned workshops first. Sorted here rather than in the query so the
-        // page still works if the `featured` column hasn't been migrated yet;
-        // JS sort is stable, so display_order is preserved within each group.
-        workshops = workshops.slice().sort(function (a, b) {
-          return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-        });
+      // A workshop is only "past" once its calendar date has gone by. No date
+      // set = still upcoming, so nothing ever vanishes just for missing a date.
+      function workshopIsPast(w) {
+        if (!w || !w.event_date) { return false; }
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var d = new Date(w.event_date + 'T00:00:00');
+        return !isNaN(d.getTime()) && d < today;
+      }
+      function workshopImages(w) {
+        var wimgs = [];
+        if (Array.isArray(w.images)) { wimgs = w.images.filter(function (u) { return u && String(u).trim(); }); }
+        if (!wimgs.length && w.image_url) { wimgs = [w.image_url]; }
+        return wimgs;
+      }
 
-        var whtml = '';
-        workshops.forEach(function (w) {
+      // Build one workshop card. Past workshops don't get a "Reserve" button.
+      function buildWorkshopCard(w, isPast) {
           // Normalise field names (Supabase: date_label/time_label; products.js: date/time)
           var dateLabel = w.date_label || w.date || '';
           var timeLabel = w.time_label || w.time || '';
-          var wimgs = [];
-          if (Array.isArray(w.images)) { wimgs = w.images.filter(function (u) { return u && String(u).trim(); }); }
-          if (!wimgs.length && w.image_url) { wimgs = [w.image_url]; }
+          var wimgs = workshopImages(w);
 
-          whtml += '<article class="workshop-card">';
+          var whtml = '<article class="workshop-card' + (isPast ? ' is-past' : '') + '">';
           // Photos (same carousel + lightbox as products; only if the workshop has any)
           if (wimgs.length) {
             whtml += '<div class="workshop-img-wrap">';
@@ -601,11 +614,93 @@
             whtml += '<span>' + esc(w.location) + '</span></div>';
           }
           whtml += '</div>';
-          whtml += '<a class="btn" href="' + esc(waUrl(w.title)) + '" target="_blank" rel="noopener">' + esc(w.cta_label || w.cta || 'Reserve my seat') + '</a>';
+          if (!isPast) {
+            whtml += '<a class="btn" href="' + esc(waUrl(w.title)) + '" target="_blank" rel="noopener">' + esc(w.cta_label || w.cta || 'Reserve my seat') + '</a>';
+          }
           whtml += '</article>';
+          return whtml;
+      }
+
+      // Split into Upcoming / Previous, render both, and feature any pinned
+      // upcoming workshop at the very top of the page.
+      function renderWorkshops(workshops) {
+        var grid     = document.getElementById('workshops-grid');
+        var pastWrap = document.getElementById('past-workshops');
+        var pastGrid = document.getElementById('past-workshops-grid');
+
+        var list     = (workshops || []).slice();
+        var upcoming = list.filter(function (w) { return !workshopIsPast(w); });
+        var past     = list.filter(function (w) { return  workshopIsPast(w); });
+
+        // upcoming: pinned first, then soonest date (undated ones last)
+        upcoming.sort(function (a, b) {
+          var f = (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+          if (f) { return f; }
+          var ad = a.event_date || '9999-12-31';
+          var bd = b.event_date || '9999-12-31';
+          return ad < bd ? -1 : ad > bd ? 1 : 0;
         });
-        workshopsGrid.innerHTML = whtml;
-        initCarousels(workshopsGrid);
+        // past: most recent first
+        past.sort(function (a, b) {
+          var ad = a.event_date || '', bd = b.event_date || '';
+          return ad < bd ? 1 : ad > bd ? -1 : 0;
+        });
+
+        grid.innerHTML = upcoming.length
+          ? upcoming.map(function (w) { return buildWorkshopCard(w, false); }).join('')
+          : '<p class="empty-state">No upcoming workshops — follow us on Instagram for announcements.</p>';
+        initCarousels(grid);
+
+        if (past.length) {
+          pastGrid.innerHTML = past.map(function (w) { return buildWorkshopCard(w, true); }).join('');
+          initCarousels(pastGrid);
+          pastWrap.hidden = false;
+        } else {
+          pastWrap.hidden = true;
+        }
+
+        renderWorkshopHighlight(upcoming);
+      }
+
+      // A pinned upcoming workshop gets a banner at the very top of the homepage.
+      function renderWorkshopHighlight(upcoming) {
+        var sec  = document.getElementById('workshop-highlight');
+        var card = document.getElementById('wh-card');
+        if (!sec || !card) { return; }
+
+        var pinned = null;
+        for (var i = 0; i < upcoming.length; i++) {
+          if (upcoming[i].featured) { pinned = upcoming[i]; break; }
+        }
+        if (!pinned) { sec.hidden = true; return; }
+
+        var imgs      = workshopImages(pinned);
+        var dateLabel = pinned.date_label || pinned.date || '';
+        var timeLabel = pinned.time_label || pinned.time || '';
+
+        var h = '';
+        if (imgs.length) {
+          h += '<div class="wh-img">'
+             + '<img src="' + esc(imgSrc(imgs[0], 800)) + '" alt="' + esc(pinned.title) + '" decoding="async" />'
+             + '</div>';
+        }
+        h += '<div class="wh-body">';
+        h += '<span class="wh-eyebrow">Upcoming workshop</span>';
+        h += '<h2 class="wh-title">' + esc(pinned.title) + '</h2>';
+        h += '<div class="wh-meta">';
+        if (dateLabel)       { h += '<span>' + esc(dateLabel) + '</span>'; }
+        if (timeLabel)       { h += '<span>' + esc(timeLabel) + '</span>'; }
+        if (pinned.location) { h += '<span>' + esc(pinned.location) + '</span>'; }
+        h += '</div>';
+        if (pinned.description) { h += '<p class="wh-desc">' + esc(pinned.description) + '</p>'; }
+        h += '<div class="wh-actions">';
+        h += '<a class="btn" href="' + esc(waUrl(pinned.title)) + '" target="_blank" rel="noopener">'
+           + esc(pinned.cta_label || pinned.cta || 'Reserve my seat') + '</a>';
+        h += '<a class="btn ghost" href="#workshops">All workshops</a>';
+        h += '</div></div>';
+
+        card.innerHTML = h;
+        sec.hidden = false;
       }
 
       // ── Wire static parts (footer, FAB, nav) ──────────────

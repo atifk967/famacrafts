@@ -723,8 +723,18 @@
           <label for="wm-title-input">Workshop Title *</label>
           <input type="text" id="wm-title-input" required placeholder="e.g. Bloom Together" style="font-style:italic;" />
         </div>
+        <!-- Real date, used for logic (hidden until the event_date column exists) -->
+        <div class="field" id="wm-eventdate-field">
+          <label for="wm-event-date">Workshop Date (calendar)</label>
+          <input type="date" id="wm-event-date" />
+          <div class="upload-or" style="margin-top:4px;font-size:9px;text-align:left">
+            Once this date passes, the workshop moves to “Previous” on the site automatically.
+            Leave blank to keep it listed as upcoming.
+          </div>
+        </div>
+
         <div class="field">
-          <label for="wm-date">Date</label>
+          <label for="wm-date">Date shown on site</label>
           <input type="text" id="wm-date" placeholder="e.g. Saturday, 14 June 2026" />
         </div>
         <div class="field">
@@ -749,7 +759,7 @@
           <input type="checkbox" id="wm-featured" />
           <label for="wm-featured">
             Pin to top
-            <small>Show this workshop above the others</small>
+            <small>Feature this workshop at the very top of the homepage (upcoming only)</small>
           </label>
         </div>
 
@@ -1412,6 +1422,7 @@
               + '<span>' + esc(w.date_label || 'No date') + '</span>'
               + (w.time_label ? '<span>' + esc(w.time_label) + '</span>' : '')
               + '<span class="badge ' + (w.active ? 'on' : 'off') + '">' + (w.active ? 'Active' : 'Hidden') + '</span>'
+              + '<span class="badge ' + (workshopIsPast(w) ? 'off' : 'on') + '">' + (workshopIsPast(w) ? 'Past' : 'Upcoming') + '</span>'
               + (w.featured ? '<span class="badge star">Pinned</span>' : '')
             + '</div>'
             + (w.location ? '<div class="item-info-tagline">📍 ' + esc(w.location) + '</div>' : '')
@@ -1436,6 +1447,7 @@
     // database. Each is probed separately so one can land before the other.
     var workshopImagesOk = false;
     var workshopPinOk = false;
+    var workshopDateOk = false;
     async function detectWorkshopImages() {
       if (!sb) { return; }
       var imgRes = await sb.from('workshops').select('image_url,images').limit(1);
@@ -1447,6 +1459,19 @@
       workshopPinOk = !pinRes.error;
       var pinRow = document.getElementById('wm-pin-row');
       if (pinRow) { pinRow.style.display = workshopPinOk ? '' : 'none'; }
+
+      var dateRes = await sb.from('workshops').select('event_date').limit(1);
+      workshopDateOk = !dateRes.error;
+      var dateField = document.getElementById('wm-eventdate-field');
+      if (dateField) { dateField.style.display = workshopDateOk ? '' : 'none'; }
+    }
+
+    // Is this workshop in the past? No date = still upcoming (never hide by accident).
+    function workshopIsPast(w) {
+      if (!w || !w.event_date) { return false; }
+      var today = new Date(); today.setHours(0, 0, 0, 0);
+      var d = new Date(w.event_date + 'T00:00:00');
+      return !isNaN(d.getTime()) && d < today;
     }
 
     function renderWmThumbs() {
@@ -1532,11 +1557,13 @@
         document.getElementById('wm-cta').value                 = w.cta_label   || '';
         document.getElementById('wm-active').checked            = w.active !== false;
         document.getElementById('wm-featured').checked          = !!w.featured;
+        document.getElementById('wm-event-date').value          = w.event_date  || '';
       } else {
         document.getElementById('wm-title').textContent = 'Add Workshop';
         document.getElementById('wm-id').value = '';
         document.getElementById('wm-active').checked = true;
         document.getElementById('wm-featured').checked = false;
+        document.getElementById('wm-event-date').value = '';
       }
       document.getElementById('workshop-modal').classList.add('open');
       setTimeout(function () { document.getElementById('wm-title-input').focus(); }, 80);
@@ -1580,6 +1607,10 @@
       }
       if (workshopPinOk) {
         payload.featured = document.getElementById('wm-featured').checked;
+      }
+      if (workshopDateOk) {
+        // empty date → NULL (stays "upcoming"), never an empty string
+        payload.event_date = document.getElementById('wm-event-date').value || null;
       }
 
       // photos that were dropped during this edit should be freed from storage
