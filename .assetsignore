@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.local
+.DS_Store
+.gitignore
+.assetsignore
+wrangler.jsonc
+worker.js
+setup.sql
+CLAUDE.md
+design.md
+supabase
+.wrangler
+node_modules
