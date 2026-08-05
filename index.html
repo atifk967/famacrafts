@@ -463,6 +463,14 @@
         if (raw.includes('res.cloudinary.com') && raw.includes('/upload/')) {
           return raw.replace('/upload/', '/upload/w_' + w + ',q_80,f_auto/');
         }
+        // Route Supabase Storage images through our own edge-caching proxy
+        // (functions/storage/product-images/) instead of hitting Supabase's
+        // metered egress on every visitor's request.
+        var supaMarker = '/storage/v1/object/public/product-images/';
+        var si = raw.indexOf(supaMarker);
+        if (si >= 0) {
+          return location.origin + '/storage/product-images/' + raw.slice(si + supaMarker.length);
+        }
         return raw;
       }
 

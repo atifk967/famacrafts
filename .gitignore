@@ -11,3 +11,6 @@
 # Editor
 .vscode/
 .idea/
+
+# Local Cloudflare Pages Functions dev cache (wrangler pages dev)
+.wrangler/
