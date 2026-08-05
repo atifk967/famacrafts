@@ -13,3 +13,5 @@ design.md
 supabase
 .wrangler
 node_modules
+package.json
+package-lock.json

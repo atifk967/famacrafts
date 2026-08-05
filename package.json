@@ -1,0 +1,10 @@
+{
+  "name": "famacrafts",
+  "private": true,
+  "dependencies": {
+    "@cf-wasm/photon": "^0.4.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

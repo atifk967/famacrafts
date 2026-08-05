@@ -11,3 +11,8 @@
 # Editor
 .vscode/
 .idea/
+
+# Local Cloudflare Worker dev cache (wrangler dev) and npm dependencies
+# (Cloudflare's build reinstalls these from package-lock.json)
+.wrangler/
+node_modules/
